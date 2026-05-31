@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}الامتحانات{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1><i class="fas fa-clipboard-list"></i> الامتحانات التجريبية</h1>
+    <a href="{{ url_for('admin.add_quiz') }}" class="btn-add">
+      <i class="fas fa-plus"></i> إضافة امتحان
+    </a>
+  </div>
+
+  <div class="filter-bar">
+    <a href="{{ url_for('admin.quizzes') }}" class="filter-btn {% if not selected_subject %}active{% endif %}">الكل</a>
+    {% for s in subjects %}
+    <a href="{{ url_for('admin.quizzes', subject_id=s.id) }}"
+       class="filter-btn {% if selected_subject == s.id %}active{% endif %}">
+      {{ s.icon }} {{ s.name_ar or s.name }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>عنوان الامتحان</th>
+          <th>المادة</th>
+          <th>الأسئلة</th>
+          <th>الوقت</th>
+          <th>نسبة النجاح</th>
+          <th>الحالة</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in quizzes %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            <strong>{{ q.title }}</strong>
+            {% if q.description %}<br><small class="text-muted">{{ q.description[:60] }}</small>{% endif %}
+          </td>
+          <td>
+            <span class="subject-tag" style="color:{{ q.subject.color }}">
+              {{ q.subject.icon }} {{ q.subject.name_ar or q.subject.name }}
+            </span>
+          </td>
+          <td>
+            <span class="q-count-badge">{{ q.question_count() }} سؤال</span>
+          </td>
+          <td>{% if q.time_limit %}{{ q.time_limit }} د{% else %}—{% endif %}</td>
+          <td><span class="pass-badge">{{ q.pass_score }}%</span></td>
+          <td>
+            <span class="status-dot {% if q.is_active %}active{% else %}inactive{% endif %}">
+              {% if q.is_active %}✅ مفعّل{% else %}❌ معطّل{% endif %}
+            </span>
+          </td>
+          <td class="actions-cell">
+            <a href="{{ url_for('admin.quiz_questions', qid=q.id) }}" class="btn-view sm" title="الأسئلة">
+              <i class="fas fa-list"></i>
+            </a>
+            <a href="{{ url_for('admin.edit_quiz', qid=q.id) }}" class="btn-edit sm">
+              <i class="fas fa-edit"></i>
+            </a>
+            <form method="POST" action="{{ url_for('admin.delete_quiz', qid=q.id) }}"
+                  style="display:inline" onsubmit="return confirm('حذف هذا الامتحان وأسئلته؟')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn-delete sm"><i class="fas fa-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center">لا توجد امتحانات بعد</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

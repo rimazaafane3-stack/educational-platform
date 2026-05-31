@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{% if quiz %}تعديل الامتحان{% else %}إضافة امتحان{% endif %}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1>{% if quiz %}<i class="fas fa-edit"></i> تعديل الامتحان{% else %}<i class="fas fa-plus"></i> امتحان جديد{% endif %}</h1>
+    <a href="{{ url_for('admin.quizzes') }}" class="btn-back"><i class="fas fa-arrow-right"></i> العودة</a>
+  </div>
+
+  <form method="POST" class="admin-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-group">
+      <label>عنوان الامتحان <span class="req">*</span></label>
+      <input type="text" name="title" class="form-control"
+             value="{{ quiz.title if quiz else '' }}" placeholder="مثال: امتحان الفصل الأول" required>
+    </div>
+    <div class="form-group">
+      <label>وصف الامتحان</label>
+      <textarea name="description" class="form-control" rows="2"
+                placeholder="وصف مختصر...">{{ quiz.description if quiz else '' }}</textarea>
+    </div>
+
+    <div class="form-grid three-col">
+      <div class="form-group">
+        <label>المادة <span class="req">*</span></label>
+        <select name="subject_id" class="form-control" required>
+          <option value="">-- اختر المادة --</option>
+          {% for s in subjects %}
+          <option value="{{ s.id }}" {% if quiz and quiz.subject_id==s.id %}selected{% endif %}>
+            {{ s.icon }} {{ s.name_ar or s.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>نوع النشاط</label>
+        <select name="quiz_type" class="form-control">
+          <option value="exam"     {% if quiz and quiz.quiz_type=='exam'     %}selected{% endif %}>📝 امتحان رسمي</option>
+          <option value="practice" {% if quiz and quiz.quiz_type=='practice' %}selected{% endif %}>✏️ تمرين تدريبي</option>
+          <option value="game"     {% if quiz and quiz.quiz_type=='game'     %}selected{% endif %}>🎮 كويز ممتع</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>نسبة النجاح (%)</label>
+        <input type="number" name="pass_score" class="form-control"
+               value="{{ quiz.pass_score if quiz else 60 }}" min="1" max="100">
+      </div>
+    </div>
+
+    <div class="form-grid three-col">
+      <div class="form-group">
+        <label>الوقت المحدد (دقيقة) <small>0 = بلا حد</small></label>
+        <input type="number" name="time_limit" class="form-control"
+               value="{{ quiz.time_limit if quiz else 0 }}" min="0">
+      </div>
+      <div class="form-group">
+        <label>أقصى عدد محاولات <small>0 = غير محدود</small></label>
+        <input type="number" name="max_attempts" class="form-control"
+               value="{{ quiz.max_attempts if quiz else 0 }}" min="0">
+      </div>
+      <div class="form-group">
+        <label>الترتيب</label>
+        <input type="number" name="order" class="form-control"
+               value="{{ quiz.order if quiz else 0 }}" min="0">
+      </div>
+    </div>
+
+    <!-- Controls Section -->
+    <div style="background:#F5F3FF;border-radius:14px;padding:1.25rem;margin-bottom:1rem;">
+      <h4 style="font-weight:800;margin-bottom:1rem;color:#6C63FF;"><i class="fas fa-sliders-h"></i> إعدادات متقدمة</h4>
+      <div class="form-grid two-col">
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:.75rem;margin:0;">
+          <input type="checkbox" name="show_answers" id="showAnswers"
+                 {% if quiz is none or quiz.show_answers %}checked{% endif %}>
+          <label for="showAnswers" style="cursor:pointer;font-weight:700;">
+            👁️ إظهار الإجابات الصحيحة بعد الانتهاء
+          </label>
+        </div>
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:.75rem;margin:0;">
+          <input type="checkbox" name="shuffle_questions" id="shuffleQ"
+                 {% if quiz and quiz.shuffle_questions %}checked{% endif %}>
+          <label for="shuffleQ" style="cursor:pointer;font-weight:700;">
+            🔀 ترتيب عشوائي للأسئلة
+          </label>
+        </div>
+        {% if quiz %}
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:.75rem;margin:0;">
+          <input type="checkbox" name="is_active" id="isActive" {% if quiz.is_active %}checked{% endif %}>
+          <label for="isActive" style="cursor:pointer;font-weight:700;">✅ مفعّل</label>
+        </div>
+        {% endif %}
+      </div>
+      <div style="margin-top:.75rem;padding:.75rem;background:rgba(108,99,255,.08);border-radius:10px;font-size:.85rem;color:#5549E0;">
+        <strong>💡 تلميح:</strong>
+        إذا أخفيت الإجابات، لن يرى الطالب أي إجابات صحيحة بعد الامتحان — مفيد للامتحانات الرسمية.
+        تحديد عدد المحاولات يمنع التكرار غير المحدود.
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-submit">
+        <i class="fas fa-save"></i> {% if quiz %}حفظ التعديلات{% else %}إنشاء الامتحان{% endif %}
+      </button>
+      <a href="{{ url_for('admin.quizzes') }}" class="btn-cancel">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

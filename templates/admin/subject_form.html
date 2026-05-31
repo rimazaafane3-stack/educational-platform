@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}{% if subject %}تعديل المادة{% else %}إضافة مادة{% endif %}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1>{% if subject %}<i class="fas fa-edit"></i> تعديل المادة{% else %}<i class="fas fa-plus"></i> إضافة مادة جديدة{% endif %}</h1>
+    <a href="{{ url_for('admin.subjects') }}" class="btn-back">
+      <i class="fas fa-arrow-right"></i> العودة
+    </a>
+  </div>
+
+  <form method="POST" class="admin-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-grid two-col">
+      <div class="form-group">
+        <label>اسم المادة (بالعربية) <span class="req">*</span></label>
+        <input type="text" name="name_ar" class="form-control"
+               value="{{ subject.name_ar if subject else '' }}" placeholder="مثال: الرياضيات" required>
+      </div>
+      <div class="form-group">
+        <label>اسم المادة (بالفرنسية/الإنجليزية)</label>
+        <input type="text" name="name" class="form-control"
+               value="{{ subject.name if subject else '' }}" placeholder="Math" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>الوصف</label>
+      <textarea name="description" class="form-control" rows="3"
+                placeholder="وصف مختصر للمادة...">{{ subject.description if subject else '' }}</textarea>
+    </div>
+
+    <div class="form-grid three-col">
+      <div class="form-group">
+        <label>الأيقونة (Emoji)</label>
+        <input type="text" name="icon" class="form-control icon-input"
+               value="{{ subject.icon if subject else '📚' }}" placeholder="📚">
+        <small>اختر emoji مناسب للمادة</small>
+      </div>
+      <div class="form-group">
+        <label>لون العنوان</label>
+        <div class="color-input-wrap">
+          <input type="color" name="color" class="color-picker"
+                 value="{{ subject.color if subject else '#4F46E5' }}">
+          <span class="color-preview" id="colorPreview">{{ subject.color if subject else '#4F46E5' }}</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>لون الخلفية</label>
+        <div class="color-input-wrap">
+          <input type="color" name="bg_color" class="color-picker"
+                 value="{{ subject.bg_color if subject else '#EEF2FF' }}">
+          <span class="color-preview" id="bgColorPreview">{{ subject.bg_color if subject else '#EEF2FF' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-grid two-col">
+      <div class="form-group">
+        <label>الترتيب</label>
+        <input type="number" name="order" class="form-control"
+               value="{{ subject.order if subject else 0 }}" min="0">
+      </div>
+      {% if subject %}
+      <div class="form-group">
+        <label>الحالة</label>
+        <div class="toggle-wrap">
+          <input type="checkbox" name="is_active" id="isActive"
+                 {% if subject.is_active %}checked{% endif %}>
+          <label for="isActive" class="toggle-label">مفعّل</label>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Preview -->
+    <div class="form-group">
+      <label>معاينة البطاقة</label>
+      <div class="subject-preview" id="subjectPreview">
+        <span id="prevIcon">{{ subject.icon if subject else '📚' }}</span>
+        <span id="prevName">{{ subject.name_ar if subject else 'اسم المادة' }}</span>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-submit">
+        <i class="fas fa-save"></i> {% if subject %}حفظ التعديلات{% else %}إضافة المادة{% endif %}
+      </button>
+      <a href="{{ url_for('admin.subjects') }}" class="btn-cancel">إلغاء</a>
+    </div>
+  </form>
+</div>
+
+<script>
+const iconInput = document.querySelector('input[name="icon"]');
+const nameInput = document.querySelector('input[name="name_ar"]');
+const colorInput = document.querySelector('input[name="color"]');
+const bgInput   = document.querySelector('input[name="bg_color"]');
+const preview   = document.getElementById('subjectPreview');
+
+function updatePreview() {
+  document.getElementById('prevIcon').textContent = iconInput.value || '📚';
+  document.getElementById('prevName').textContent = nameInput.value || 'اسم المادة';
+  preview.style.borderColor = colorInput.value;
+  preview.style.background  = bgInput.value;
+  preview.style.color       = colorInput.value;
+  document.getElementById('colorPreview').textContent = colorInput.value;
+  document.getElementById('bgColorPreview').textContent = bgInput.value;
+}
+
+[iconInput, nameInput, colorInput, bgInput].forEach(el => {
+  if (el) el.addEventListener('input', updatePreview);
+});
+updatePreview();
+</script>
+{% endblock %}

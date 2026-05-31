@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{{ subject.name_ar or subject.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.lesson-entry-card{display:flex;align-items:center;gap:1rem;background:#fff;border-radius:16px;padding:1.1rem 1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.07);border:2px solid #e5e7eb;transition:all .25s;margin-bottom:.7rem;}
+.lesson-entry-card:hover{border-color:{{ subject.color }};transform:translateX(-4px);box-shadow:0 6px 24px rgba(0,0,0,.12);}
+.lesson-entry-card.done{border-color:#10B981;background:#F0FDF4;}
+.lec-num{width:44px;height:44px;border-radius:12px;background:{{ subject.color }};color:#fff;font-weight:900;font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.lec-body{flex:1;}
+.lec-body h3{font-size:1rem;font-weight:800;margin-bottom:.25rem;}
+.lec-body p{font-size:.84rem;color:#6B7280;margin-bottom:.4rem;}
+.lec-meta{display:flex;gap:.6rem;font-size:.79rem;flex-wrap:wrap;align-items:center;}
+.btn-start-lesson{display:flex;align-items:center;gap:.4rem;background:linear-gradient(135deg,{{ subject.color }},{{ subject.color }}cc);color:#fff;border:none;border-radius:12px;padding:.55rem 1.1rem;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit;text-decoration:none;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+.btn-start-lesson:hover{transform:scale(1.05);box-shadow:0 4px 14px rgba(0,0,0,.2);}
+.btn-done-lesson{display:flex;align-items:center;gap:.4rem;background:#D1FAE5;color:#065F46;border-radius:12px;padding:.55rem 1.1rem;font-weight:800;font-size:.9rem;white-space:nowrap;flex-shrink:0;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="subject-page">
+
+  <div class="subject-hero" style="background:linear-gradient(135deg,{{ subject.color }}18,{{ subject.color }}30);border-color:{{ subject.color }}44;">
+    <div class="sh-icon">{{ subject.icon }}</div>
+    <div class="sh-info">
+      <h1 style="color:{{ subject.color }}">{{ subject.name_ar or subject.name }}</h1>
+      <p>{{ subject.description or '' }}</p>
+      <div class="sh-stats">
+        <span><i class="fas fa-book"></i> {{ lessons|length }} درس</span>
+        <span><i class="fas fa-video"></i> {{ videos|length }} فيديو</span>
+        <span><i class="fas fa-tasks"></i> {{ quizzes|length }} امتحان</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showTab('lessons-tab',this)">
+      <i class="fas fa-book-open"></i> الدروس
+    </button>
+    <button class="tab-btn" onclick="showTab('videos-tab',this)">
+      <i class="fas fa-play-circle"></i> الفيديوهات
+    </button>
+    <button class="tab-btn" onclick="showTab('quizzes-tab',this)">
+      <i class="fas fa-question-circle"></i> الامتحانات
+    </button>
+  </div>
+
+  <!-- ═══ LESSONS TAB ══════════════════════════════════════ -->
+  <div id="lessons-tab" class="tab-content active">
+    {% for l in lessons %}
+    {% set lbl = l.get_difficulty_label() %}
+    {% set is_done = l.id in done_ids %}
+    <div class="lesson-entry-card {% if is_done %}done{% endif %}">
+      <div class="lec-num">{{ loop.index }}</div>
+      <div class="lec-body">
+        <h3>{{ l.title }}</h3>
+        {% if l.summary %}<p>{{ l.summary[:80] }}{% if l.summary|length > 80 %}...{% endif %}</p>{% endif %}
+        <div class="lec-meta">
+          <span class="diff-badge diff-{{ l.difficulty }}">{{ lbl[0] }} {{ lbl[1] }}</span>
+          <span><i class="fas fa-clock"></i> {{ l.duration }} دقيقة</span>
+          {% if is_done %}<span style="color:#10B981;font-weight:700;">✅ مكتمل</span>{% endif %}
+        </div>
+      </div>
+      {% if is_done %}
+      <a href="{{ url_for('student.lesson', lid=l.id) }}" class="btn-done-lesson">
+        <i class="fas fa-redo"></i> مراجعة
+      </a>
+      {% else %}
+      <a href="{{ url_for('student.lesson', lid=l.id) }}" class="btn-start-lesson">
+        <i class="fas fa-rocket"></i> ابدأ الدرس
+      </a>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="empty-state">📖 لا توجد دروس متاحة بعد</div>
+    {% endfor %}
+  </div>
+
+  <!-- ═══ VIDEOS TAB ════════════════════════════════════════ -->
+  <div id="videos-tab" class="tab-content">
+    <div class="videos-grid">
+      {% for v in videos %}
+      <a href="{{ url_for('student.video', vid=v.id) }}" class="video-card">
+        <div class="video-thumb">
+          {% if v.get_thumbnail_url() %}
+          <img src="{{ v.get_thumbnail_url() }}" alt="{{ v.title }}" loading="lazy">
+          {% else %}
+          <div class="video-thumb-placeholder">🎥</div>
+          {% endif %}
+          <div class="play-overlay"><i class="fas fa-play"></i></div>
+          {% if v.duration %}<span class="vid-duration">{{ v.duration }}</span>{% endif %}
+        </div>
+        <div class="video-info">
+          <h4>{{ v.title }}</h4>
+          <p>{{ v.description[:80] + '...' if v.description and v.description|length > 80 else v.description or '' }}</p>
+          <small><i class="fas fa-eye"></i> {{ v.views }} مشاهدة</small>
+        </div>
+      </a>
+      {% else %}
+      <div class="empty-state">🎥 لا توجد فيديوهات بعد</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══ QUIZZES TAB ═══════════════════════════════════════ -->
+  <div id="quizzes-tab" class="tab-content">
+    <div class="quizzes-list">
+      {% for q in quizzes %}
+      {% set best = best_scores.get(q.id) %}
+      {% set type_info = q.get_type_label() %}
+      {% set can_do = q.can_attempt(current_user.id) %}
+      <div class="quiz-card">
+        <div class="quiz-card-header" style="background:{{ subject.color }}">
+          <span>{{ type_info[1] }}</span>
+          <h3>{{ q.title }}</h3>
+          <span style="background:rgba(255,255,255,.2);padding:.15rem .6rem;border-radius:8px;font-size:.8rem;">{{ type_info[0] }}</span>
+        </div>
+        <div class="quiz-card-body">
+          <p>{{ q.description or '' }}</p>
+          <div class="quiz-meta">
+            <span><i class="fas fa-question"></i> {{ q.question_count() }} سؤال</span>
+            {% if q.time_limit %}<span><i class="fas fa-clock"></i> {{ q.time_limit }} دقيقة</span>{% endif %}
+            <span><i class="fas fa-bullseye"></i> النجاح: {{ q.pass_score }}%</span>
+            {% if q.max_attempts > 0 %}
+            <span><i class="fas fa-redo"></i> {{ q.user_attempts_count(current_user.id) }}/{{ q.max_attempts }} محاولة</span>
+            {% endif %}
+          </div>
+          {% if best %}
+          <div class="best-score {% if best.passed %}passed{% else %}failed{% endif %}">
+            <i class="fas fa-{% if best.passed %}trophy{% else %}redo{% endif %}"></i>
+            أفضل نتيجة: <strong>{{ best.get_percentage() }}%</strong>
+            {% if best.passed %}✅ نجحت!{% else %}💪 حاول مجدداً{% endif %}
+          </div>
+          {% endif %}
+          {% if can_do %}
+          <a href="{{ url_for('student.quiz_start', qid=q.id) }}" class="btn-quiz" style="background:{{ subject.color }}">
+            {% if best %}🔄 إعادة الامتحان{% else %}🚀 ابدأ الامتحان{% endif %}
+          </a>
+          {% else %}
+          <div style="background:#FEE2E2;color:#991B1B;border-radius:10px;padding:.65rem;text-align:center;font-weight:700;">
+            🚫 وصلت للحد الأقصى من المحاولات ({{ q.max_attempts }})
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="empty-state">📝 لا توجد امتحانات بعد</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+{% endblock %}

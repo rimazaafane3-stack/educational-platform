@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}أسئلة: {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <div>
+      <h1><i class="fas fa-question-circle"></i> أسئلة الامتحان</h1>
+      <p class="subtitle">{{ quiz.title }} — {{ quiz.subject.icon }} {{ quiz.subject.name_ar or quiz.subject.name }}</p>
+    </div>
+    <div class="header-actions">
+      <a href="{{ url_for('admin.add_question', qid=quiz.id) }}" class="btn-add">
+        <i class="fas fa-plus"></i> إضافة سؤال
+      </a>
+      <a href="{{ url_for('admin.quizzes') }}" class="btn-back">
+        <i class="fas fa-arrow-right"></i> العودة
+      </a>
+    </div>
+  </div>
+
+  <!-- Quiz Meta -->
+  <div class="quiz-meta-bar">
+    <span><i class="fas fa-question"></i> {{ questions|length }} سؤال</span>
+    <span><i class="fas fa-star"></i> {{ quiz.total_points() }} نقطة إجمالية</span>
+    {% if quiz.time_limit %}<span><i class="fas fa-clock"></i> {{ quiz.time_limit }} دقيقة</span>{% endif %}
+    <span><i class="fas fa-bullseye"></i> النجاح: {{ quiz.pass_score }}%</span>
+    <a href="{{ url_for('admin.edit_quiz', qid=quiz.id) }}" class="btn-sm">
+      <i class="fas fa-cog"></i> إعدادات الامتحان
+    </a>
+  </div>
+
+  <!-- Questions List -->
+  {% if questions %}
+  <div class="questions-admin-list">
+    {% for q in questions %}
+    <div class="qa-card">
+      <div class="qa-header">
+        <span class="qa-num">{{ loop.index }}</span>
+        <span class="qa-type-badge type-{{ q.q_type }}">
+          {% if q.q_type == 'mcq' %}اختيار متعدد
+          {% elif q.q_type == 'true_false' %}صح أو خطأ
+          {% else %}ملء الفراغ{% endif %}
+        </span>
+        <span class="qa-points"><i class="fas fa-star"></i> {{ q.points }} نقطة</span>
+        <div class="qa-actions">
+          <a href="{{ url_for('admin.edit_question', qid=q.id) }}" class="btn-edit sm">
+            <i class="fas fa-edit"></i>
+          </a>
+          <form method="POST" action="{{ url_for('admin.delete_question', qid=q.id) }}"
+                style="display:inline" onsubmit="return confirm('حذف هذا السؤال؟')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-delete sm"><i class="fas fa-trash"></i></button>
+          </form>
+        </div>
+      </div>
+
+      {% if q.image %}
+      <div class="qa-img">
+        <img src="{{ url_for('static', filename='uploads/' + q.image) }}" alt="صورة السؤال">
+      </div>
+      {% endif %}
+
+      <p class="qa-text">{{ q.text }}</p>
+
+      <div class="qa-choices">
+        {% for c in q.choices.order_by('order').all() %}
+        <div class="qa-choice {% if c.is_correct %}correct{% endif %}">
+          {% if c.is_correct %}✅{% else %}○{% endif %} {{ c.text }}
+          {% if c.is_correct %}<span class="correct-badge">الإجابة الصحيحة</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if q.explanation %}
+      <div class="qa-explanation">
+        <i class="fas fa-lightbulb"></i> <strong>الشرح:</strong> {{ q.explanation }}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state big">
+    <div class="es-icon">📝</div>
+    <h3>لا توجد أسئلة بعد</h3>
+    <p>ابدأ بإضافة أسئلة لهذا الامتحان</p>
+    <a href="{{ url_for('admin.add_question', qid=quiz.id) }}" class="btn-add">
+      <i class="fas fa-plus"></i> إضافة أول سؤال
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

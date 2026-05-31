@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="htmlRoot">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}نجوم التعلم{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/adhd.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body id="bodyRoot"
+  class="
+    {% if current_user.is_authenticated and current_user.settings %}
+      {% if current_user.settings.dark_mode %}dark-mode{% endif %}
+      font-{{ current_user.settings.font_size or 'medium' }}
+      {% if current_user.settings.reduced_motion %}reduced-motion{% endif %}
+      {% if current_user.settings.dyslexia_font %}dyslexia-font{% endif %}
+    {% endif %}
+    {% block body_class %}{% endblock %}
+  "
+  data-sound="{{ 'on' if current_user.is_authenticated and current_user.settings and current_user.settings.sound_enabled else 'off' }}"
+>
+
+{% if current_user.is_authenticated %}
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="{{ url_for('student.dashboard') if not current_user.is_admin() else url_for('admin.dashboard') }}" class="nav-logo">
+      <span class="logo-icon">🌟</span>
+      <span class="logo-text">نجوم التعلم</span>
+    </a>
+
+    {% if not current_user.is_admin() %}
+    <div class="nav-links" id="navLinks">
+      <a href="{{ url_for('student.dashboard') }}" class="nav-link {% if request.endpoint=='student.dashboard' %}active{% endif %}">
+        <i class="fas fa-home"></i> الرئيسية
+      </a>
+      {% for s in nav_subjects %}
+      <a href="{{ url_for('student.subject', sid=s.id) }}" class="nav-link">{{ s.icon }} {{ s.name_ar or s.name }}</a>
+      {% endfor %}
+      <a href="{{ url_for('student.videos_list') }}" class="nav-link {% if 'video' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-play-circle"></i> فيديوهات
+      </a>
+      <a href="{{ url_for('student.journey') }}" class="nav-link {% if request.endpoint=='student.journey' %}active{% endif %}">
+        🔥 رحلتي
+      </a>
+    </div>
+    <div class="nav-user">
+      <!-- Streak pill -->
+      {% if current_user.streak %}
+      <div class="streak-widget" style="padding:.4rem .75rem;">
+        <span class="streak-fire {% if not current_user.streak.current_streak %}cold{% endif %}">🔥</span>
+        <div>
+          <span class="streak-num {% if not current_user.streak.current_streak %}cold{% endif %}">{{ current_user.streak.current_streak }}</span>
+          <span class="streak-label">يوم</span>
+        </div>
+      </div>
+      {% endif %}
+      <!-- XP pill -->
+      <div class="nav-points"><i class="fas fa-star"></i> {{ current_user.points }}</div>
+      <div class="nav-avatar-wrap">
+        <div class="nav-avatar">{{ current_user.username[0].upper() }}</div>
+        <div class="nav-dropdown">
+          <a href="{{ url_for('student.profile') }}"><i class="fas fa-user"></i> ملفي</a>
+          <a href="{{ url_for('student.settings') }}"><i class="fas fa-cog"></i> الإعدادات</a>
+          <a href="{{ url_for('auth.logout') }}" class="danger"><i class="fas fa-sign-out-alt"></i> خروج</a>
+        </div>
+      </div>
+    </div>
+
+    {% else %}
+    <!-- Admin nav -->
+    <div class="nav-links admin-links" id="navLinks">
+      <a href="{{ url_for('admin.dashboard') }}"  class="nav-link {% if request.endpoint=='admin.dashboard' %}active{% endif %}"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a>
+      <a href="{{ url_for('admin.subjects') }}"   class="nav-link {% if 'subject' in request.endpoint %}active{% endif %}"><i class="fas fa-book-open"></i> المواد</a>
+      <a href="{{ url_for('admin.lessons') }}"    class="nav-link {% if 'lesson' in request.endpoint %}active{% endif %}"><i class="fas fa-chalkboard-teacher"></i> الدروس</a>
+      <a href="{{ url_for('admin.videos') }}"     class="nav-link {% if 'video' in request.endpoint %}active{% endif %}"><i class="fas fa-video"></i> الفيديوهات</a>
+      <a href="{{ url_for('admin.quizzes') }}"    class="nav-link {% if 'quiz' in request.endpoint %}active{% endif %}"><i class="fas fa-question-circle"></i> الامتحانات</a>
+      <a href="{{ url_for('admin.students') }}"   class="nav-link {% if 'student' in request.endpoint %}active{% endif %}"><i class="fas fa-users"></i> الطلاب</a>
+      <a href="{{ url_for('admin.results') }}"    class="nav-link {% if 'result' in request.endpoint %}active{% endif %}"><i class="fas fa-chart-bar"></i> النتائج</a>
+      <a href="{{ url_for('admin.badges') }}"     class="nav-link {% if 'badge' in request.endpoint %}active{% endif %}"><i class="fas fa-medal"></i> الشارات</a>
+    </div>
+    <div class="nav-user">
+      <span class="admin-badge-label">🛡️ المشرف</span>
+      <a href="{{ url_for('auth.logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i> خروج</a>
+    </div>
+    {% endif %}
+
+    <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+{% endif %}
+
+<!-- Flash messages -->
+<div class="flash-container" id="flashContainer">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}">
+      <span>{{ msg }}</span>
+      <button onclick="this.parentElement.remove()">×</button>
+    </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<!-- Dopamine toast -->
+<div class="dopamine-toast" id="dopamineToast"></div>
+
+<main class="main-content {% if current_user.is_authenticated and current_user.is_admin() %}admin-layout{% endif %}">
+  {% block content %}{% endblock %}
+</main>
+
+{% if current_user.is_authenticated and not current_user.is_admin() %}
+<footer class="footer">
+  <p>🌟 نجوم التعلم — تعلّم بطريقتك الخاصة</p>
+</footer>
+{% endif %}
+
+<!-- Sound effects (tiny base64 beep) -->
+<audio id="sndSuccess" preload="auto">
+  <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFhYOAfXt6eHh4eXt9f4CBgoOEhYWFhISCgH57eXh3d3h5e3+BhIeJi4yMjIuJh4SCf3x5d3Z2dnd4eoCAhYmMjo+PjoyJhoJ+end1dHR0dHV3en+EiYyPkZKSkZCNiYV/enVxbm1sbGxvdHqBiI+Vmp2enp2al5KNhnx0a2NcV1VVV1pgaXKAvoyXn6Smpaaflo1/cF5LNygfGhkaHSMtO0xgd46hsbzBv7mvnot0W0AoFgkBAAEKFiY4Tnang7WZr7K5t7GmkoB3bGNdXFtdYGdxfomVoKmsrKqmn5aKfG5fUEI2LSgnJycpLS89UGZ9k6a0v8a/sJeAak5B" type="audio/wav">
+</audio>
+
+<script>
+// ── Dark mode / settings apply ─────────────────────────────
+function applySettings() {
+  const body = document.getElementById('bodyRoot');
+  const sound = body.dataset.sound === 'on';
+  window._soundEnabled = sound;
+}
+applySettings();
+
+// ── Dopamine toast ─────────────────────────────────────────
+function showToast(msg, icon='⭐') {
+  const t = document.getElementById('dopamineToast');
+  t.innerHTML = `<span>${icon}</span> ${msg}`;
+  t.classList.add('show');
+  if (window._soundEnabled) {
+    try { document.getElementById('sndSuccess').play(); } catch(e) {}
+  }
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+window.showToast = showToast;
+
+// ── Flash auto-dismiss ─────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.flash').forEach(el => {
+    setTimeout(() => { el.style.opacity='0'; }, 3500);
+    setTimeout(() => el.remove(), 3900);
+  });
+});
+
+// ── Mobile nav ─────────────────────────────────────────────
+const toggle = document.getElementById('navToggle');
+const links  = document.getElementById('navLinks');
+if (toggle && links) {
+  toggle.addEventListener('click', () => links.classList.toggle('open'));
+}
+
+// ── Animate progress bars ──────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-width]').forEach(el => {
+    const w = el.dataset.width;
+    el.style.width = '0%';
+    requestAnimationFrame(() => setTimeout(() => el.style.width = w, 100));
+  });
+});
+
+// ── Settings quick toggle ──────────────────────────────────
+function toggleSetting(key, val) {
+  fetch('/api/settings', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'X-CSRFToken': getCsrf()},
+    body: JSON.stringify({key, value: val})
+  }).then(() => location.reload());
+}
+
+function getCsrf() {
+  const m = document.cookie.match(/csrf_token=([^;]+)/);
+  return m ? m[1] : '';
+}
+</script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}نتائج الامتحانات{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1><i class="fas fa-chart-bar"></i> نتائج الامتحانات</h1>
+  </div>
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr><th>الطالب</th><th>الامتحان</th><th>المادة</th><th>النتيجة</th><th>الحالة</th><th>التاريخ</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for a in attempts %}
+        <tr>
+          <td>{{ a.student.username }}</td>
+          <td>{{ a.quiz.title }}</td>
+          <td>{{ a.quiz.subject.name_ar or a.quiz.subject.name }}</td>
+          <td><span class="score-badge {% if a.passed %}passed{% else %}failed{% endif %}">{{ a.get_percentage() }}%</span></td>
+          <td>{% if a.passed %}✅ نجح{% else %}❌ راسب{% endif %}</td>
+          <td>{{ a.completed_at.strftime('%Y/%m/%d') if a.completed_at else '-' }}</td>
+          <td><a href="{{ url_for('student.quiz_result', attempt_id=a.id) }}" class="btn-view sm"><i class="fas fa-eye"></i></a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center">لا توجد نتائج بعد</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

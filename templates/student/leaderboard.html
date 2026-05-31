@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}المتصدرون{% endblock %}
+
+{% block content %}
+<div class="leaderboard-page">
+  <div class="page-header centered">
+    <h1>🏆 لوحة المتصدرين</h1>
+    <p>أفضل الطلاب هذا الموسم</p>
+  </div>
+
+  <!-- Top 3 Podium -->
+  {% if students|length >= 3 %}
+  <div class="podium">
+    <!-- 2nd -->
+    <div class="podium-place second">
+      <div class="podium-avatar">{{ students[1].username[0].upper() }}</div>
+      <div class="podium-name">{{ students[1].username }}</div>
+      <div class="podium-pts">{{ students[1].points }} ⭐</div>
+      <div class="podium-block">🥈</div>
+    </div>
+    <!-- 1st -->
+    <div class="podium-place first">
+      <div class="podium-crown">👑</div>
+      <div class="podium-avatar gold">{{ students[0].username[0].upper() }}</div>
+      <div class="podium-name">{{ students[0].username }}</div>
+      <div class="podium-pts">{{ students[0].points }} ⭐</div>
+      <div class="podium-block">🥇</div>
+    </div>
+    <!-- 3rd -->
+    <div class="podium-place third">
+      <div class="podium-avatar">{{ students[2].username[0].upper() }}</div>
+      <div class="podium-name">{{ students[2].username }}</div>
+      <div class="podium-pts">{{ students[2].points }} ⭐</div>
+      <div class="podium-block">🥉</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Full Ranking -->
+  <div class="ranking-list">
+    {% for s in students %}
+    <div class="rank-row {% if s.id == current_user.id %}is-me{% endif %}">
+      <div class="rank-num">
+        {% if loop.index == 1 %}🥇
+        {% elif loop.index == 2 %}🥈
+        {% elif loop.index == 3 %}🥉
+        {% else %}{{ loop.index }}{% endif %}
+      </div>
+      <div class="rank-avatar {% if s.id == current_user.id %}me{% endif %}">
+        {{ s.username[0].upper() }}
+      </div>
+      <div class="rank-info">
+        <strong>{{ s.full_name or s.username }}</strong>
+        {% if s.id == current_user.id %}<span class="me-tag">أنت</span>{% endif %}
+        <small>{{ s.get_level_title() }}</small>
+      </div>
+      <div class="rank-score">
+        <span class="rank-pts">{{ s.points }}</span>
+        <span class="rank-star">⭐</span>
+      </div>
+    </div>
+    {% else %}
+    <p class="no-data">لا يوجد طلاب بعد</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}الرئيسية{% endblock %}
+
+{% block content %}
+<div class="adhd-dashboard">
+
+  <!-- Continue where you left off -->
+  {% if last_lesson %}
+  <a href="{{ url_for('student.lesson', lid=last_lesson.id) }}" class="continue-card">
+    <div class="continue-icon">▶️</div>
+    <div class="continue-body">
+      <div class="continue-label">أكمل من حيث توقفت</div>
+      <div class="continue-title">{{ last_lesson.title }}</div>
+      <div style="font-size:.82rem;opacity:.8;margin-top:.2rem;">{{ last_lesson.subject.name_ar or last_lesson.subject.name }}</div>
+    </div>
+    <div class="continue-arrow">←</div>
+  </a>
+  {% endif %}
+
+  <!-- Stats row -->
+  <div class="adhd-stats-row">
+    <div class="adhd-stat">
+      <span class="adhd-stat-icon">🔥</span>
+      <span class="adhd-stat-val">{{ streak.current_streak if streak else 0 }}</span>
+      <span class="adhd-stat-lbl">أيام متواصلة</span>
+    </div>
+    <div class="adhd-stat">
+      <span class="adhd-stat-icon">⭐</span>
+      <span class="adhd-stat-val">{{ current_user.points }}</span>
+      <span class="adhd-stat-lbl">نقطة</span>
+    </div>
+    <div class="adhd-stat">
+      <span class="adhd-stat-icon">📖</span>
+      <span class="adhd-stat-val">{{ current_user.progress.filter_by(completed=True).count() }}</span>
+      <span class="adhd-stat-lbl">درس مكتمل</span>
+    </div>
+    <div class="adhd-stat">
+      <span class="adhd-stat-icon">🏅</span>
+      <span class="adhd-stat-val">{{ current_user.badges.count() }}</span>
+      <span class="adhd-stat-lbl">شارة</span>
+    </div>
+  </div>
+
+  <!-- XP Bar -->
+  {% set xp_thresholds = [0, 100, 300, 600, 1000] %}
+  {% set cur = xp_thresholds[current_user.level - 1] if current_user.level <= 5 else 1000 %}
+  {% set nxt = xp_thresholds[current_user.level]     if current_user.level < 5  else 1000 %}
+  {% set pct = [(current_user.points - cur) * 100 // (nxt - cur + 1), 100] | min if nxt > cur else 100 %}
+  <div class="xp-bar-adhd" style="margin-bottom:1.25rem;">
+    <div class="xp-top">
+      <span style="font-weight:800;font-size:.95rem;">{{ current_user.get_level_title() }}</span>
+      <span class="xp-level-badge">Lv.{{ current_user.level }}</span>
+    </div>
+    <div class="xp-track">
+      <div class="xp-fill" data-width="{{ pct }}%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--adhd-muted);margin-top:.3rem;">
+      <span>{{ current_user.points }} نقطة</span>
+      <span>{{ nxt }} للمستوى التالي</span>
+    </div>
+  </div>
+
+  <!-- Daily Missions -->
+  <div class="adhd-section">
+    <div class="adhd-section-header">
+      <h2>🎯 مهام اليوم</h2>
+      <span style="font-size:.82rem;font-weight:700;color:var(--adhd-muted);">{{ missions_done }}/{{ missions|length }} مكتملة</span>
+    </div>
+    <div class="missions-panel">
+      {% for m in missions %}
+      {% set prog = m.progress %}
+      {% set pct_m = [prog.current_count * 100 // m.mission.target_count, 100]|min %}
+      <div class="mission-item {% if prog.completed %}done{% endif %}">
+        <div class="mission-icon">{{ m.mission.icon }}</div>
+        <div class="mission-info">
+          <span class="mission-title">{{ m.mission.title }}</span>
+          <span class="mission-xp">+{{ m.mission.xp_reward }} XP</span>
+        </div>
+        <div class="mission-prog-wrap">
+          <div class="mission-prog-bar">
+            <div class="mission-prog-fill" data-width="{{ pct_m }}%"></div>
+          </div>
+          <div class="mission-prog-label">
+            {% if prog.completed %}✅{% else %}{{ prog.current_count }}/{{ m.mission.target_count }}{% endif %}
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <p style="color:var(--adhd-muted);text-align:center;padding:1rem;">لا توجد مهام اليوم</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- My Subjects -->
+  <div class="adhd-section">
+    <div class="adhd-section-header">
+      <h2>📚 موادي الدراسية</h2>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.75rem;">
+      {% for s in subjects %}
+      {% set p = progress_map.get(s.id, {'total':0,'done':0,'pct':0}) %}
+      <a href="{{ url_for('student.subject', sid=s.id) }}" class="adhd-subject-card" style="--s-color:{{ s.color }}">
+        <div class="asc-icon">{{ s.icon }}</div>
+        <div class="asc-body">
+          <div class="asc-name">{{ s.name_ar or s.name }}</div>
+          <div class="asc-meta">{{ s.lesson_count() }} درس · {{ s.quiz_count() }} امتحان</div>
+          <div class="asc-progress">
+            <div class="asc-bar">
+              <div class="asc-fill" data-width="{{ p.pct }}%" style="background:{{ s.color }}"></div>
+            </div>
+            <span class="asc-pct">{{ p.pct }}%</span>
+          </div>
+        </div>
+        <span style="font-size:1.2rem;color:var(--adhd-muted);">←</span>
+      </a>
+      {% else %}
+      <div style="text-align:center;padding:2rem;color:var(--adhd-muted);">📚 لا توجد مواد بعد</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Badges -->
+  {% if badges %}
+  <div class="adhd-section">
+    <div class="adhd-section-header">
+      <h2>🏅 آخر الشارات</h2>
+      <a href="{{ url_for('student.profile') }}" class="see-all-link">عرض الكل</a>
+    </div>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+      {% for ub in badges %}
+      <div class="badge-chip" title="{{ ub.badge.description or ub.badge.name }}">
+        <span>{{ ub.badge.icon }}</span>
+        <span>{{ ub.badge.name }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}الشارات{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1><i class="fas fa-medal"></i> الشارات والإنجازات</h1>
+    <a href="{{ url_for('admin.add_badge') }}" class="btn-add">
+      <i class="fas fa-plus"></i> إضافة شارة
+    </a>
+  </div>
+
+  <div class="badges-admin-grid">
+    {% for b in badges %}
+    <div class="badge-admin-card" style="border-color: {{ b.color }}">
+      <div class="bac-icon" style="background:{{ b.color }}22">{{ b.icon }}</div>
+      <div class="bac-info">
+        <h4>{{ b.name }}</h4>
+        <p>{{ b.description or '' }}</p>
+        {% if b.condition %}
+        <span class="condition-tag">{{ b.condition }}</span>
+        {% endif %}
+        {% if b.points_required %}
+        <small>يتطلب {{ b.points_required }} نقطة</small>
+        {% endif %}
+        <small class="text-muted">{{ b.users.count() }} طالب حصل عليها</small>
+      </div>
+      <form method="POST" action="{{ url_for('admin.delete_badge', bid=b.id) }}"
+            onsubmit="return confirm('حذف هذه الشارة؟')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-delete sm"><i class="fas fa-trash"></i></button>
+      </form>
+    </div>
+    {% else %}
+    <div class="empty-state" style="grid-column:1/-1">
+      🏅 لا توجد شارات — <a href="{{ url_for('admin.add_badge') }}">أضف شارة الآن</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

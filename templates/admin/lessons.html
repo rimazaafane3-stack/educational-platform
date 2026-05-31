@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}الدروس{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1><i class="fas fa-chalkboard-teacher"></i> الدروس</h1>
+    <a href="{{ url_for('admin.add_lesson') }}" class="btn-add">
+      <i class="fas fa-plus"></i> إضافة درس
+    </a>
+  </div>
+
+  <!-- Filter by subject -->
+  <div class="filter-bar">
+    <a href="{{ url_for('admin.lessons') }}" class="filter-btn {% if not selected_subject %}active{% endif %}">الكل</a>
+    {% for s in subjects %}
+    <a href="{{ url_for('admin.lessons', subject_id=s.id) }}"
+       class="filter-btn {% if selected_subject == s.id %}active{% endif %}">
+      {{ s.icon }} {{ s.name_ar or s.name }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>عنوان الدرس</th>
+          <th>المادة</th>
+          <th>الصعوبة</th>
+          <th>المدة</th>
+          <th>الترتيب</th>
+          <th>الحالة</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in lessons %}
+        {% set lbl = l.get_difficulty_label() %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            <strong>{{ l.title }}</strong>
+            {% if l.summary %}<br><small class="text-muted">{{ l.summary[:60] }}...</small>{% endif %}
+          </td>
+          <td>
+            <span class="subject-tag" style="background:{{ l.subject.color }}22; color:{{ l.subject.color }}">
+              {{ l.subject.icon }} {{ l.subject.name_ar or l.subject.name }}
+            </span>
+          </td>
+          <td><span class="diff-badge diff-{{ l.difficulty }}">{{ lbl[0] }} {{ lbl[1] }}</span></td>
+          <td><i class="fas fa-clock"></i> {{ l.duration }} د</td>
+          <td>{{ l.order }}</td>
+          <td>
+            <span class="status-dot {% if l.is_active %}active{% else %}inactive{% endif %}">
+              {% if l.is_active %}✅ مفعّل{% else %}❌ معطّل{% endif %}
+            </span>
+          </td>
+          <td class="actions-cell">
+            <a href="{{ url_for('admin.edit_lesson', lid=l.id) }}" class="btn-edit sm">
+              <i class="fas fa-edit"></i>
+            </a>
+            <form method="POST" action="{{ url_for('admin.delete_lesson', lid=l.id) }}"
+                  style="display:inline" onsubmit="return confirm('حذف هذا الدرس؟')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn-delete sm"><i class="fas fa-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center">لا توجد دروس بعد</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

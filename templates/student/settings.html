@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}الإعدادات{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;margin:0 auto;">
+  <div style="margin-bottom:1.5rem;">
+    <h1 style="font-size:1.5rem;font-weight:900;">⚙️ إعداداتي</h1>
+    <p style="color:var(--adhd-muted);">خصّص تجربتك التعليمية</p>
+  </div>
+
+  <form method="POST" action="{{ url_for('student.settings') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- المظهر -->
+    <div class="settings-group">
+      <h3>🎨 المظهر</h3>
+      <div class="setting-row">
+        <div class="setting-info">
+          <strong>الوضع الليلي</strong>
+          <small>خلفية داكنة تريح العينين</small>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" name="dark_mode" {% if settings.dark_mode %}checked{% endif %}
+                 onchange="this.form.submit()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <strong>خط صديق لعسر القراءة</strong>
+          <small>خط مخصص يسهّل القراءة</small>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" name="dyslexia_font" {% if settings.dyslexia_font %}checked{% endif %}
+                 onchange="this.form.submit()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <strong>حجم الخط</strong>
+          <small>اختر ما يناسبك</small>
+        </div>
+        <select name="font_size" class="form-control" style="width:auto;" onchange="this.form.submit()">
+          <option value="small"  {% if settings.font_size=='small'  %}selected{% endif %}>صغير</option>
+          <option value="medium" {% if settings.font_size=='medium' %}selected{% endif %}>متوسط</option>
+          <option value="large"  {% if settings.font_size=='large'  %}selected{% endif %}>كبير</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- التركيز -->
+    <div class="settings-group">
+      <h3>🎯 وضع التركيز</h3>
+      <div class="setting-row">
+        <div class="setting-info">
+          <strong>مدة جلسة التركيز</strong>
+          <small>كم دقيقة تريد للجلسة الواحدة؟</small>
+        </div>
+        <select name="focus_duration" class="form-control" style="width:auto;" onchange="this.form.submit()">
+          <option value="10"  {% if settings.focus_duration==10  %}selected{% endif %}>10 دقائق</option>
+          <option value="15"  {% if settings.focus_duration==15  %}selected{% endif %}>15 دقيقة</option>
+          <option value="20"  {% if settings.focus_duration==20  %}selected{% endif %}>20 دقيقة</option>
+          <option value="25"  {% if settings.focus_duration==25  %}selected{% endif %}>25 دقيقة (الافتراضي)</option>
+          <option value="30"  {% if settings.focus_duration==30  %}selected{% endif %}>30 دقيقة</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <strong>تقليل الحركة</strong>
+          <small>إيقاف الأنيميشن لمن يتأثر بها</small>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" name="reduced_motion" {% if settings.reduced_motion %}checked{% endif %}
+                 onchange="this.form.submit()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- الصوت -->
+    <div class="settings-group">
+      <h3>🔊 الصوت</h3>
+      <div class="setting-row">
+        <div class="setting-info">
+          <strong>أصوات التحفيز</strong>
+          <small>صوت عند كسب النقاط والإنجازات</small>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" name="sound_enabled" {% if settings.sound_enabled %}checked{% endif %}
+                 onchange="this.form.submit()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+  </form>
+
+  <div style="text-align:center;margin-top:1.5rem;">
+    <a href="{{ url_for('student.dashboard') }}" class="btn-back">
+      <i class="fas fa-arrow-right"></i> العودة للرئيسية
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1><i class="fas fa-users"></i> إدارة الطلاب</h1>
+    <span class="header-count">{{ students|length }} طالب مسجل</span>
+  </div>
+
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>الطالب</th>
+          <th>البريد الإلكتروني</th>
+          <th>المستوى</th>
+          <th>النقاط</th>
+          <th>تاريخ التسجيل</th>
+          <th>الحالة</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            <div class="student-cell">
+              <div class="mini-avatar">{{ s.username[0].upper() }}</div>
+              <div>
+                <strong>{{ s.full_name or s.username }}</strong>
+                <br><small class="text-muted">@{{ s.username }}</small>
+              </div>
+            </div>
+          </td>
+          <td>{{ s.email }}</td>
+          <td>
+            <span class="level-badge-sm">{{ s.get_level_title() }}</span>
+          </td>
+          <td><span class="pts-tag">{{ s.points }} ⭐</span></td>
+          <td>{{ s.created_at.strftime('%Y/%m/%d') }}</td>
+          <td>
+            <span class="status-dot {% if s.is_active %}active{% else %}inactive{% endif %}">
+              {% if s.is_active %}✅ نشط{% else %}❌ معطّل{% endif %}
+            </span>
+          </td>
+          <td class="actions-cell">
+            <form method="POST" action="{{ url_for('admin.toggle_student', uid=s.id) }}" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn-toggle sm" title="{% if s.is_active %}تعطيل{% else %}تفعيل{% endif %}">
+                {% if s.is_active %}<i class="fas fa-ban"></i>{% else %}<i class="fas fa-check"></i>{% endif %}
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('admin.delete_student', uid=s.id) }}"
+                  style="display:inline" onsubmit="return confirm('حذف حساب هذا الطالب نهائياً؟')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn-delete sm"><i class="fas fa-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center">لا يوجد طلاب مسجلون بعد</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

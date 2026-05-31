@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ video.title }}{% endblock %}
+
+{% block content %}
+<div class="video-player-page">
+  <div class="video-layout">
+
+    <!-- Main Player -->
+    <div class="player-main">
+      <div class="breadcrumb">
+        <a href="{{ url_for('student.videos_list') }}">🎥 الفيديوهات</a>
+        <span>›</span>
+        <a href="{{ url_for('student.subject', sid=video.subject_id) }}">{{ video.subject.name_ar or video.subject.name }}</a>
+        <span>›</span>
+        <span>{{ video.title }}</span>
+      </div>
+
+      <!-- YouTube Embed -->
+      {% if video.get_embed_url() %}
+      <div class="yt-wrapper">
+        <iframe src="{{ video.get_embed_url() }}"
+                title="{{ video.title }}"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+                loading="lazy"></iframe>
+      </div>
+      {% else %}
+      <div class="no-video">
+        <p>🎥 الفيديو غير متاح حالياً</p>
+      </div>
+      {% endif %}
+
+      <div class="video-details">
+        <span class="vid-subject-tag" style="background:{{ video.subject.color }}22; color:{{ video.subject.color }}">
+          {{ video.subject.icon }} {{ video.subject.name_ar or video.subject.name }}
+        </span>
+        <h1>{{ video.title }}</h1>
+        <div class="vid-meta">
+          {% if video.duration %}<span><i class="fas fa-clock"></i> {{ video.duration }}</span>{% endif %}
+          <span><i class="fas fa-eye"></i> {{ video.views }} مشاهدة</span>
+        </div>
+        {% if video.description %}
+        <p class="vid-description">{{ video.description }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Sidebar: Related -->
+    <aside class="player-sidebar">
+      <h4><i class="fas fa-list"></i> فيديوهات ذات صلة</h4>
+      <div class="related-list">
+        {% for rv in related %}
+        <a href="{{ url_for('student.video', vid=rv.id) }}" class="related-item">
+          <div class="ri-thumb">
+            {% if rv.get_thumbnail_url() %}
+            <img src="{{ rv.get_thumbnail_url() }}" alt="{{ rv.title }}" loading="lazy">
+            {% else %}
+            <div class="ri-thumb-ph">🎥</div>
+            {% endif %}
+            <div class="play-overlay small"><i class="fas fa-play"></i></div>
+          </div>
+          <div class="ri-info">
+            <p>{{ rv.title }}</p>
+            {% if rv.duration %}<small><i class="fas fa-clock"></i> {{ rv.duration }}</small>{% endif %}
+          </div>
+        </a>
+        {% else %}
+        <p class="no-related">لا توجد فيديوهات أخرى في هذا القسم</p>
+        {% endfor %}
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

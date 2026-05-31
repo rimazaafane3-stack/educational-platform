@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}{{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="quiz-page">
+
+  <!-- Quiz Header -->
+  <div class="quiz-header">
+    <h1><i class="fas fa-clipboard-list"></i> {{ quiz.title }}</h1>
+    <div class="quiz-info-row">
+      <span><i class="fas fa-question-circle"></i> {{ questions|length }} سؤال</span>
+      <span><i class="fas fa-star"></i> {{ quiz.total_points() }} نقطة</span>
+      {% if quiz.time_limit %}
+      <span class="timer-display" id="timerDisplay">
+        <i class="fas fa-clock"></i> <span id="timerVal">{{ quiz.time_limit * 60 }}</span>
+      </span>
+      {% endif %}
+    </div>
+    <!-- Progress bar -->
+    <div class="quiz-progress-bar">
+      <div class="quiz-progress-fill" id="quizProgressFill" style="width:0%"></div>
+    </div>
+    <div class="quiz-progress-label">
+      السؤال <span id="currentQ">0</span> من {{ questions|length }}
+    </div>
+  </div>
+
+  <!-- Questions -->
+  <form method="POST" action="{{ url_for('student.quiz_submit', attempt_id=attempt.id) }}" id="quizForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="questions-container" id="questionsContainer">
+      {% for q in questions %}
+      <div class="question-slide {% if loop.first %}active{% endif %}" data-index="{{ loop.index0 }}" id="qs_{{ q.id }}">
+
+        <div class="q-header">
+          <span class="q-number">{{ loop.index }} / {{ questions|length }}</span>
+          <span class="q-points"><i class="fas fa-star"></i> {{ q.points }} نقطة</span>
+        </div>
+
+        {% if q.image %}
+        <div class="q-image">
+          <img src="{{ url_for('static', filename='uploads/' + q.image) }}" alt="صورة السؤال">
+        </div>
+        {% endif %}
+
+        <p class="q-text">{{ q.text }}</p>
+
+        <div class="choices-grid">
+          {% for c in q.choices.order_by('order').all() %}
+          <label class="choice-label" for="c_{{ c.id }}">
+            <input type="radio" name="q_{{ q.id }}" id="c_{{ c.id }}" value="{{ c.id }}"
+                   onchange="choiceSelected(this, {{ loop.index0 }})">
+            <span class="choice-marker">{{ ['أ','ب','ج','د'][loop.index0] if loop.index0 < 4 else loop.index0 }}</span>
+            <span class="choice-text">{{ c.text }}</span>
+            <span class="choice-check"><i class="fas fa-check"></i></span>
+          </label>
+          {% endfor %}
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="q-nav">
+          {% if not loop.first %}
+          <button type="button" class="btn-q-nav prev" onclick="navigate(-1)">
+            <i class="fas fa-chevron-right"></i> السابق
+          </button>
+          {% endif %}
+          {% if not loop.last %}
+          <button type="button" class="btn-q-nav next" onclick="navigate(1)">
+            التالي <i class="fas fa-chevron-left"></i>
+          </button>
+          {% else %}
+          <button type="button" class="btn-submit-quiz" onclick="confirmSubmit()">
+            <i class="fas fa-paper-plane"></i> إرسال الإجابات
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Questions mini-map -->
+    <div class="q-map">
+      {% for q in questions %}
+      <button type="button" class="q-dot" id="dot_{{ loop.index0 }}" onclick="goTo({{ loop.index0 }})">
+        {{ loop.index }}
+      </button>
+      {% endfor %}
+    </div>
+  </form>
+
+  <!-- Confirm Submit Modal -->
+  <div id="confirmModal" class="modal" style="display:none">
+    <div class="modal-overlay" onclick="document.getElementById('confirmModal').style.display='none'"></div>
+    <div class="modal-box">
+      <div class="modal-icon">📝</div>
+      <h2>هل أنت مستعد للإرسال؟</h2>
+      <p id="submitSummary">لم تجب على كل الأسئلة بعد!</p>
+      <div class="modal-btns">
+        <button class="btn-modal danger" onclick="document.getElementById('quizForm').submit()">
+          <i class="fas fa-paper-plane"></i> إرسال الآن
+        </button>
+        <button class="btn-modal secondary" onclick="document.getElementById('confirmModal').style.display='none'">
+          الرجوع للمراجعة
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentIndex = 0;
+const totalQ = {{ questions|length }};
+const answered = new Set();
+{% if quiz.time_limit %}
+let timeLeft = {{ quiz.time_limit * 60 }};
+const timerEl = document.getElementById('timerVal');
+const timerInterval = setInterval(() => {
+  timeLeft--;
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  timerEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  if (timeLeft <= 60) document.getElementById('timerDisplay').classList.add('urgent');
+  if (timeLeft <= 0) { clearInterval(timerInterval); document.getElementById('quizForm').submit(); }
+}, 1000);
+{% endif %}
+
+function choiceSelected(input, qIdx) {
+  const slide = input.closest('.question-slide');
+  slide.querySelectorAll('.choice-label').forEach(l => l.classList.remove('selected'));
+  input.closest('.choice-label').classList.add('selected');
+  answered.add(qIdx);
+  document.getElementById('dot_' + qIdx).classList.add('answered');
+  updateProgress();
+}
+
+function updateProgress() {
+  const pct = (answered.size / totalQ) * 100;
+  document.getElementById('quizProgressFill').style.width = pct + '%';
+  document.getElementById('currentQ').textContent = currentIndex + 1;
+}
+
+function navigate(dir) {
+  const slides = document.querySelectorAll('.question-slide');
+  slides[currentIndex].classList.remove('active');
+  currentIndex = Math.max(0, Math.min(totalQ - 1, currentIndex + dir));
+  slides[currentIndex].classList.add('active');
+  updateProgress();
+  document.querySelectorAll('.q-dot').forEach((d, i) => {
+    d.classList.toggle('current', i === currentIndex);
+  });
+}
+
+function goTo(idx) {
+  const slides = document.querySelectorAll('.question-slide');
+  slides[currentIndex].classList.remove('active');
+  currentIndex = idx;
+  slides[currentIndex].classList.add('active');
+  updateProgress();
+}
+
+function confirmSubmit() {
+  const missing = totalQ - answered.size;
+  const summary = document.getElementById('submitSummary');
+  summary.textContent = missing > 0
+    ? `لم تجب على ${missing} سؤال بعد. هل تريد الإرسال على كل حال؟`
+    : `أجبت على جميع الأسئلة. هل أنت مستعد؟`;
+  document.getElementById('confirmModal').style.display = 'flex';
+}
+
+// Init
+document.querySelectorAll('.q-dot').forEach((d, i) => {
+  if (i === 0) d.classList.add('current');
+});
+updateProgress();
+</script>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}{% if lesson %}تعديل الدرس{% else %}إضافة درس{% endif %}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+.ql-container{font-family:'Cairo',sans-serif;font-size:1rem;min-height:350px;border-radius:0 0 10px 10px;}
+.ql-toolbar{border-radius:10px 10px 0 0;background:#f8f9ff;}
+.ql-editor{min-height:320px;direction:rtl;text-align:right;}
+.ql-editor h1,.ql-editor h2,.ql-editor h3{color:#6C63FF;}
+.color-presets{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.4rem;}
+.color-preset{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:border .15s;}
+.color-preset:hover{border-color:#333;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1>{% if lesson %}<i class="fas fa-edit"></i> تعديل الدرس{% else %}<i class="fas fa-plus"></i> درس جديد{% endif %}</h1>
+    <a href="{{ url_for('admin.lessons') }}" class="btn-back"><i class="fas fa-arrow-right"></i> العودة</a>
+  </div>
+
+  <form method="POST" class="admin-form" id="lessonForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="content" id="hiddenContent">
+
+    <div class="form-grid two-col">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>عنوان الدرس <span class="req">*</span></label>
+        <input type="text" name="title" class="form-control"
+               value="{{ lesson.title if lesson else '' }}" placeholder="عنوان الدرس" required>
+      </div>
+      <div class="form-group">
+        <label>المادة <span class="req">*</span></label>
+        <select name="subject_id" class="form-control" required>
+          <option value="">-- اختر المادة --</option>
+          {% for s in subjects %}
+          <option value="{{ s.id }}" {% if lesson and lesson.subject_id==s.id %}selected{% endif %}>
+            {{ s.icon }} {{ s.name_ar or s.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>الصعوبة</label>
+        <select name="difficulty" class="form-control">
+          <option value="easy"   {% if lesson and lesson.difficulty=='easy'   %}selected{% endif %}>🟢 سهل</option>
+          <option value="medium" {% if lesson and lesson.difficulty=='medium' %}selected{% endif %}>🟡 متوسط</option>
+          <option value="hard"   {% if lesson and lesson.difficulty=='hard'   %}selected{% endif %}>🔴 صعب</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>المدة (دقيقة)</label>
+        <input type="number" name="duration" class="form-control" value="{{ lesson.duration if lesson else 15 }}" min="1">
+      </div>
+      <div class="form-group">
+        <label>الترتيب</label>
+        <input type="number" name="order" class="form-control" value="{{ lesson.order if lesson else 0 }}" min="0">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>ملخص الدرس</label>
+      <textarea name="summary" class="form-control" rows="2" placeholder="وصف مختصر...">{{ lesson.summary if lesson else '' }}</textarea>
+    </div>
+
+    <!-- Rich Text Editor -->
+    <div class="form-group">
+      <label>محتوى الدرس <span class="req">*</span> <small style="color:#6B7280">— يمكنك تنسيق النص بالألوان والعناوين والجداول</small></label>
+
+      <!-- Quick color bar -->
+      <div class="color-presets">
+        <span style="font-size:.82rem;font-weight:700;color:#6B7280;align-self:center;">ألوان سريعة:</span>
+        {% for c in ['#6C63FF','#EF4444','#10B981','#F59E0B','#3B82F6','#8B5CF6','#EC4899','#14B8A6'] %}
+        <div class="color-preset" style="background:{{ c }}" onclick="applyColor('{{ c }}')" title="{{ c }}"></div>
+        {% endfor %}
+      </div>
+
+      <div id="quillEditor">{{ lesson.content | safe if lesson else '' }}</div>
+    </div>
+
+    {% if lesson %}
+    <div class="form-group">
+      <label>الحالة</label>
+      <div class="toggle-wrap">
+        <input type="checkbox" name="is_active" id="isActive" {% if lesson.is_active %}checked{% endif %}>
+        <label for="isActive" class="toggle-label">مفعّل</label>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="form-actions">
+      <button type="submit" class="btn-submit" id="submitBtn">
+        <i class="fas fa-save"></i> {% if lesson %}حفظ التعديلات{% else %}إضافة الدرس{% endif %}
+      </button>
+      <a href="{{ url_for('admin.lessons') }}" class="btn-cancel">إلغاء</a>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+var quill = new Quill('#quillEditor', {
+  theme: 'snow',
+  direction: 'rtl',
+  modules: {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'align': ['right', 'center', 'left'] }],
+      ['blockquote', 'code-block'],
+      ['link'],
+      ['clean']
+    ]
+  },
+  placeholder: 'اكتب محتوى الدرس هنا... استخدم الشريط أعلاه للتنسيق'
+});
+
+// Set RTL on editor
+quill.root.setAttribute('dir', 'rtl');
+
+function applyColor(color) {
+  quill.format('color', color);
+  quill.focus();
+}
+
+document.getElementById('lessonForm').addEventListener('submit', function(e) {
+  const content = quill.root.innerHTML;
+  if (content === '<p><br></p>' || content.trim() === '') {
+    e.preventDefault(); alert('يرجى كتابة محتوى الدرس'); return;
+  }
+  document.getElementById('hiddenContent').value = content;
+});
+</script>
+{% endblock %}

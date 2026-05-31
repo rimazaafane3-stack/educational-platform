@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}ملفي الشخصي{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+
+  <!-- Profile Header -->
+  <div class="profile-hero">
+    <div class="profile-avatar-big">{{ current_user.username[0].upper() }}</div>
+    <div class="profile-info">
+      <h1>{{ current_user.full_name or current_user.username }}</h1>
+      <p class="profile-username">@{{ current_user.username }}</p>
+      <div class="profile-level">{{ current_user.get_level_title() }}</div>
+      <p class="profile-since"><i class="fas fa-calendar"></i> عضو منذ {{ current_user.created_at.strftime('%Y/%m/%d') }}</p>
+    </div>
+    <div class="profile-stats">
+      <div class="pstat">
+        <span class="pstat-val">{{ current_user.points }}</span>
+        <span class="pstat-lbl">⭐ نقطة</span>
+      </div>
+      <div class="pstat">
+        <span class="pstat-val">{{ current_user.level }}</span>
+        <span class="pstat-lbl">🎯 مستوى</span>
+      </div>
+      <div class="pstat">
+        <span class="pstat-val">{{ completed_lessons }}</span>
+        <span class="pstat-lbl">📖 درس مكتمل</span>
+      </div>
+      <div class="pstat">
+        <span class="pstat-val">{{ badges|length }}</span>
+        <span class="pstat-lbl">🏅 شارة</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Badges -->
+  <div class="profile-section">
+    <h2><i class="fas fa-medal"></i> شاراتي</h2>
+    <div class="badges-grid">
+      {% for ub in badges %}
+      <div class="badge-card" style="border-color: {{ ub.badge.color }}">
+        <span class="badge-big-icon">{{ ub.badge.icon }}</span>
+        <h4>{{ ub.badge.name }}</h4>
+        <p>{{ ub.badge.description or '' }}</p>
+        <small>{{ ub.earned_at.strftime('%Y/%m/%d') }}</small>
+      </div>
+      {% else %}
+      <p class="no-data">لم تحصل على أي شارات بعد. ابدأ التعلم لتكسب شاراتك! 🚀</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Quiz History -->
+  <div class="profile-section">
+    <h2><i class="fas fa-history"></i> سجل الامتحانات</h2>
+    <div class="history-table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>الامتحان</th>
+            <th>المادة</th>
+            <th>النتيجة</th>
+            <th>الحالة</th>
+            <th>التاريخ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in attempts %}
+          <tr>
+            <td>{{ a.quiz.title }}</td>
+            <td>{{ a.quiz.subject.name_ar or a.quiz.subject.name }}</td>
+            <td>
+              <div class="score-badge {% if a.passed %}passed{% else %}failed{% endif %}">
+                {{ a.get_percentage() }}%
+              </div>
+            </td>
+            <td>{% if a.passed %}✅ نجحت{% else %}❌ لم تنجح{% endif %}</td>
+            <td>{{ a.completed_at.strftime('%Y/%m/%d') if a.completed_at else '-' }}</td>
+            <td>
+              <a href="{{ url_for('student.quiz_result', attempt_id=a.id) }}" class="btn-sm">عرض</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center">لم تجر أي امتحانات بعد</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

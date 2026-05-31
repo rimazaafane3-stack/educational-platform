@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}المواد الدراسية{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1><i class="fas fa-book-open"></i> المواد الدراسية</h1>
+    <a href="{{ url_for('admin.add_subject') }}" class="btn-add">
+      <i class="fas fa-plus"></i> إضافة مادة
+    </a>
+  </div>
+
+  <div class="subjects-admin-grid">
+    {% for s in subjects %}
+    <div class="subject-admin-card" style="border-top: 4px solid {{ s.color }}">
+      <div class="sac-header">
+        <span class="sac-icon">{{ s.icon }}</span>
+        <div>
+          <h3>{{ s.name_ar or s.name }}</h3>
+          <small style="color:{{ s.color }}">{{ s.name }}</small>
+        </div>
+        <span class="sac-status {% if s.is_active %}active{% else %}inactive{% endif %}">
+          {% if s.is_active %}مفعّل{% else %}معطّل{% endif %}
+        </span>
+      </div>
+      <p>{{ s.description or 'لا يوجد وصف' }}</p>
+      <div class="sac-stats">
+        <span>{{ s.lesson_count() }} درس</span>
+        <span>{{ s.video_count() }} فيديو</span>
+        <span>{{ s.quiz_count() }} امتحان</span>
+      </div>
+      <div class="sac-actions">
+        <a href="{{ url_for('admin.edit_subject', sid=s.id) }}" class="btn-edit">
+          <i class="fas fa-edit"></i> تعديل
+        </a>
+        <a href="{{ url_for('admin.lessons', subject_id=s.id) }}" class="btn-view">
+          <i class="fas fa-list"></i> الدروس
+        </a>
+        <form method="POST" action="{{ url_for('admin.delete_subject', sid=s.id) }}"
+              onsubmit="return confirm('حذف هذه المادة وكل محتواها؟')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-delete"><i class="fas fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state" style="grid-column:1/-1">
+      📚 لا توجد مواد بعد — <a href="{{ url_for('admin.add_subject') }}">أضف مادة الآن</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

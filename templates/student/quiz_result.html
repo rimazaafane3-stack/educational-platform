@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}نتيجة الامتحان{% endblock %}
+
+{% block content %}
+<div class="result-page">
+
+  <div class="result-hero {% if attempt.passed %}passed{% else %}failed{% endif %}">
+    <div class="confetti-wrap" id="confettiTop"></div>
+    <div class="result-emoji">
+      {% if attempt.score == 100 %}🏆{% elif attempt.passed %}🎉{% else %}💪{% endif %}
+    </div>
+    <h1>
+      {% if attempt.score == 100 %}ممتاز! نتيجة مثالية!
+      {% elif attempt.passed %}أحسنت! لقد نجحت!
+      {% else %}لا بأس! حاول مرة أخرى{% endif %}
+    </h1>
+    <div class="big-score">{{ attempt.get_percentage() }}<span>%</span></div>
+    <div class="result-stats">
+      <div class="rstat"><span class="rstat-val">{{ attempt.earned_points }}</span><span class="rstat-lbl">نقطة مكتسبة</span></div>
+      <div class="rstat"><span class="rstat-val">{{ attempt.total_points }}</span><span class="rstat-lbl">إجمالي النقاط</span></div>
+      {% if attempt.time_taken %}
+      <div class="rstat"><span class="rstat-val">{{ attempt.time_taken//60 }}:{{ '%02d'%(attempt.time_taken%60) }}</span><span class="rstat-lbl">الوقت</span></div>
+      {% endif %}
+    </div>
+    {% if attempt.passed %}<div class="pts-earned">+{{ attempt.earned_points * 5 }} نقطة لملفك ⭐</div>{% endif %}
+  </div>
+
+  {% if new_badge %}
+  <div class="badge-award-card">
+    <span class="ba-icon">{{ new_badge.icon }}</span>
+    <div><strong>🎊 حصلت على شارة جديدة!</strong><p>{{ new_badge.name }}</p></div>
+  </div>
+  {% endif %}
+
+  <div class="result-actions">
+    <a href="{{ url_for('student.quiz_start', qid=attempt.quiz_id) }}" class="btn-redo">
+      <i class="fas fa-redo"></i> إعادة الامتحان
+    </a>
+    <a href="{{ url_for('student.subject', sid=attempt.quiz.subject_id) }}" class="btn-back-subject">
+      <i class="fas fa-arrow-right"></i> العودة للمادة
+    </a>
+    <a href="{{ url_for('student.dashboard') }}" class="btn-home">
+      <i class="fas fa-home"></i> الرئيسية
+    </a>
+  </div>
+
+  <!-- Show review ONLY if admin allowed it -->
+  {% if attempt.quiz.show_answers %}
+  <div class="review-section">
+    <h2><i class="fas fa-search"></i> مراجعة الإجابات</h2>
+    {% for q in questions %}
+    {% set ua = answers.get(q.id) %}
+    {% set correct = q.get_correct_choice() %}
+    <div class="review-card {% if ua and ua.is_correct %}correct{% elif ua %}wrong{% else %}skipped{% endif %}">
+      <div class="rv-header">
+        <span class="rv-num">{{ loop.index }}</span>
+        <span class="rv-status">
+          {% if ua and ua.is_correct %}✅ صحيح{% elif ua %}❌ خطأ{% else %}⏭️ لم تجب{% endif %}
+        </span>
+        <span class="rv-points">{{ q.points }} نقطة</span>
+      </div>
+      <p class="rv-question">{{ q.text }}</p>
+      <div class="rv-choices">
+        {% for c in q.choices.order_by('order').all() %}
+        <div class="rv-choice {% if c.is_correct %}is-correct{% endif %} {% if ua and ua.choice_id==c.id and not c.is_correct %}is-wrong{% endif %}">
+          {% if c.is_correct %}✅{% elif ua and ua.choice_id==c.id %}❌{% else %}○{% endif %}
+          {{ c.text }}
+          {% if c.is_correct %}<span class="correct-label">الإجابة الصحيحة</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% if q.explanation %}
+      <div class="rv-explanation"><i class="fas fa-lightbulb"></i> <strong>شرح:</strong> {{ q.explanation }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <!-- Answers hidden by admin -->
+  <div style="background:#FEF3C7;border:2px solid #F59E0B;border-radius:16px;padding:1.5rem;text-align:center;margin-top:1.5rem;">
+    <div style="font-size:2.5rem;margin-bottom:.5rem;">🔒</div>
+    <h3 style="font-weight:900;color:#92400E;">الإجابات غير متاحة</h3>
+    <p style="color:#78350F;">قام المشرف بإخفاء الإجابات لهذا الامتحان</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+{% if attempt.passed %}
+document.addEventListener('DOMContentLoaded', () => {
+  const wrap = document.getElementById('confettiTop');
+  const e = ['🌟','⭐','🎉','🏆','✨','🎊','💫','🎈'];
+  for (let i=0;i<28;i++) {
+    const el=document.createElement('span'); el.textContent=e[Math.floor(Math.random()*e.length)];
+    el.style.cssText=`position:absolute;font-size:${16+Math.random()*20}px;left:${Math.random()*100}%;
+      animation:fall ${1.5+Math.random()*2}s ease forwards;animation-delay:${Math.random()}s;`;
+    wrap.appendChild(el);
+  }
+});
+{% endif %}
+</script>
+{% endblock %}

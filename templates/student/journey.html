@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}رحلتي التعليمية{% endblock %}
+
+{% block content %}
+<div style="max-width:760px;margin:0 auto;">
+
+  <!-- Journey Hero -->
+  <div class="journey-hero">
+    <div class="journey-stars" id="starsWrap"></div>
+    {% if streak.current_streak >= 1 %}
+    <div style="font-size:1rem;opacity:.7;margin-bottom:.3rem;">سلسلة التعلم المتواصل</div>
+    <span class="big-streak">{{ streak.current_streak }}🔥</span>
+    <div class="streak-message">
+      {% if streak.current_streak == 1 %}بداية رائعة! واصل يومياً 💪
+      {% elif streak.current_streak < 7 %}ممتاز! استمر واصل إلى أسبوع كامل 🚀
+      {% elif streak.current_streak < 30 %}مذهل! {{ streak.current_streak }} يوم متواصل 🏆
+      {% else %}أسطوري! {{ streak.current_streak }} يوم 👑
+      {% endif %}
+    </div>
+    {% else %}
+    <span class="big-streak" style="color:#94A3B8;">0</span>
+    <div class="streak-message" style="color:rgba(255,255,255,.6);">ابدأ اليوم لتبني سلسلتك 🌱</div>
+    {% endif %}
+    <div style="margin-top:1.25rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:.6rem 1.1rem;text-align:center;">
+        <div style="font-size:1.4rem;font-weight:900;">{{ streak.longest_streak }}</div>
+        <div style="font-size:.78rem;opacity:.7;">أطول سلسلة</div>
+      </div>
+      <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:.6rem 1.1rem;text-align:center;">
+        <div style="font-size:1.4rem;font-weight:900;">{{ streak.total_days }}</div>
+        <div style="font-size:.78rem;opacity:.7;">إجمالي الأيام</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats grid -->
+  <div class="journey-grid">
+    <div class="journey-stat-card">
+      <span class="jsc-icon">⭐</span>
+      <span class="jsc-val">{{ current_user.points }}</span>
+      <span class="jsc-lbl">نقطة مكتسبة</span>
+    </div>
+    <div class="journey-stat-card">
+      <span class="jsc-icon">📖</span>
+      <span class="jsc-val">{{ completed_lessons }}</span>
+      <span class="jsc-lbl">درس مكتمل</span>
+    </div>
+    <div class="journey-stat-card">
+      <span class="jsc-icon">🎯</span>
+      <span class="jsc-val">{{ total_focus }}</span>
+      <span class="jsc-lbl">دقيقة تركيز</span>
+    </div>
+    <div class="journey-stat-card">
+      <span class="jsc-icon">🏅</span>
+      <span class="jsc-val">{{ current_user.badges.count() }}</span>
+      <span class="jsc-lbl">شارة</span>
+    </div>
+  </div>
+
+  <!-- Level progress -->
+  {% set xp_thresholds = [0, 100, 300, 600, 1000] %}
+  {% set cur = xp_thresholds[current_user.level - 1] if current_user.level <= 5 else 1000 %}
+  {% set nxt = xp_thresholds[current_user.level]     if current_user.level < 5  else 1000 %}
+  {% set pct = [(current_user.points - cur) * 100 // (nxt - cur + 1), 100]|min if nxt > cur else 100 %}
+  <div class="xp-bar-adhd" style="margin-bottom:1.5rem;">
+    <div class="xp-top">
+      <span style="font-weight:900;">{{ current_user.get_level_title() }}</span>
+      <span class="xp-level-badge">Lv.{{ current_user.level }}</span>
+    </div>
+    <div class="xp-track">
+      <div class="xp-fill" data-width="{{ pct }}%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--adhd-muted);margin-top:.3rem;">
+      <span>{{ current_user.points }} / {{ nxt }} نقطة للمستوى التالي</span>
+      <span>{{ pct }}%</span>
+    </div>
+  </div>
+
+  <!-- Today missions -->
+  <div style="background:var(--adhd-surface);border-radius:18px;padding:1.25rem;box-shadow:var(--adhd-shadow);border:1.5px solid var(--adhd-border);margin-bottom:1.5rem;">
+    <h3 style="font-weight:900;font-size:1rem;margin-bottom:1rem;">🎯 مهام اليوم</h3>
+    {% for m in missions %}
+    {% set prog = m.progress %}
+    {% set pct_m = [prog.current_count * 100 // m.mission.target_count, 100]|min %}
+    <div class="mission-item {% if prog.completed %}done{% endif %}">
+      <div class="mission-icon">{{ m.mission.icon }}</div>
+      <div class="mission-info">
+        <span class="mission-title">{{ m.mission.title }}</span>
+        <span class="mission-xp">+{{ m.mission.xp_reward }} XP</span>
+      </div>
+      <div class="mission-prog-wrap">
+        <div class="mission-prog-bar">
+          <div class="mission-prog-fill" data-width="{{ pct_m }}%"></div>
+        </div>
+        <div class="mission-prog-label">
+          {% if prog.completed %}✅{% else %}{{ prog.current_count }}/{{ m.mission.target_count }}{% endif %}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <p style="color:var(--adhd-muted);text-align:center;">لا توجد مهام اليوم</p>
+    {% endfor %}
+  </div>
+
+  <!-- Badges -->
+  {% set all_badges = current_user.badges.all() %}
+  {% if all_badges %}
+  <div style="background:var(--adhd-surface);border-radius:18px;padding:1.25rem;box-shadow:var(--adhd-shadow);border:1.5px solid var(--adhd-border);">
+    <h3 style="font-weight:900;font-size:1rem;margin-bottom:1rem;">🏅 شاراتي ({{ all_badges|length }})</h3>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+      {% for ub in all_badges %}
+      <div style="background:var(--adhd-border);border-radius:12px;padding:.5rem .9rem;display:flex;align-items:center;gap:.4rem;font-weight:700;font-size:.88rem;" title="{{ ub.badge.description or '' }}">
+        {{ ub.badge.icon }} {{ ub.badge.name }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+// Animated stars background
+document.addEventListener('DOMContentLoaded', () => {
+  const wrap = document.getElementById('starsWrap');
+  for(let i=0;i<20;i++){
+    const s=document.createElement('div');
+    s.className='j-star';
+    s.textContent=['⭐','✨','💫'][Math.floor(Math.random()*3)];
+    s.style.cssText=`top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*2}s;`;
+    wrap.appendChild(s);
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}الفيديوهات{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1><i class="fas fa-video"></i> الفيديوهات التعليمية</h1>
+    <a href="{{ url_for('admin.add_video') }}" class="btn-add">
+      <i class="fas fa-plus"></i> إضافة فيديو
+    </a>
+  </div>
+
+  <div class="filter-bar">
+    <a href="{{ url_for('admin.videos') }}" class="filter-btn {% if not selected_subject %}active{% endif %}">الكل</a>
+    {% for s in subjects %}
+    <a href="{{ url_for('admin.videos', subject_id=s.id) }}"
+       class="filter-btn {% if selected_subject == s.id %}active{% endif %}">
+      {{ s.icon }} {{ s.name_ar or s.name }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="videos-admin-grid">
+    {% for v in videos %}
+    <div class="video-admin-card">
+      <div class="vac-thumb">
+        {% if v.get_thumbnail_url() %}
+        <img src="{{ v.get_thumbnail_url() }}" alt="{{ v.title }}">
+        {% else %}
+        <div class="vac-thumb-ph">🎥</div>
+        {% endif %}
+        <span class="vac-status {% if v.is_active %}active{% else %}inactive{% endif %}">
+          {% if v.is_active %}مفعّل{% else %}معطّل{% endif %}
+        </span>
+      </div>
+      <div class="vac-info">
+        <h4>{{ v.title }}</h4>
+        <span class="subject-tag" style="color:{{ v.subject.color }}">
+          {{ v.subject.icon }} {{ v.subject.name_ar or v.subject.name }}
+        </span>
+        <p>{{ v.description[:80] + '...' if v.description and v.description|length > 80 else v.description or '' }}</p>
+        <div class="vac-meta">
+          {% if v.duration %}<span><i class="fas fa-clock"></i> {{ v.duration }}</span>{% endif %}
+          <span><i class="fas fa-eye"></i> {{ v.views }}</span>
+          <span><i class="fas fa-sort-numeric-up"></i> {{ v.order }}</span>
+        </div>
+      </div>
+      <div class="vac-actions">
+        <a href="{{ url_for('admin.edit_video', vid=v.id) }}" class="btn-edit">
+          <i class="fas fa-edit"></i> تعديل
+        </a>
+        <form method="POST" action="{{ url_for('admin.delete_video', vid=v.id) }}"
+              onsubmit="return confirm('حذف هذا الفيديو؟')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-delete"><i class="fas fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state" style="grid-column:1/-1">
+      🎥 لا توجد فيديوهات — <a href="{{ url_for('admin.add_video') }}">أضف فيديو الآن</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
