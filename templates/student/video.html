@@ -16,7 +16,14 @@
       </div>
 
       <!-- YouTube Embed -->
-      {% if video.get_embed_url() %}
+      {% if video.is_local() %}
+      <div class="yt-wrapper">
+        <video controls style="width:100%;height:100%;background:#000;" preload="metadata">
+          <source src="{{ video.get_embed_url() }}" type="video/mp4">
+          متصفحك لا يدعم تشغيل الفيديو
+        </video>
+      </div>
+      {% elif video.get_embed_url() %}
       <div class="yt-wrapper">
         <iframe src="{{ video.get_embed_url() }}"
                 title="{{ video.title }}"

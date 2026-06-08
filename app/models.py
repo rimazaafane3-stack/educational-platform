@@ -109,8 +109,13 @@ class Video(db.Model):
         return None
 
     def get_embed_url(self):
+        if self.youtube_url and self.youtube_url.startswith('LOCAL:'):
+            return self.youtube_url.replace('LOCAL:', '')
         vid = self.youtube_id or self.extract_youtube_id()
         return f'https://www.youtube.com/embed/{vid}?rel=0&modestbranding=1' if vid else None
+
+    def is_local(self):
+        return self.youtube_url and self.youtube_url.startswith('LOCAL:')
 
     def get_thumbnail_url(self):
         vid = self.youtube_id or self.extract_youtube_id()

@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}تعديل الملف الشخصي{% endblock %}
+
+{% block extra_css %}
+<style>
+.profile-edit-page{max-width:680px;margin:0 auto;}
+.profile-card{background:var(--white);border-radius:18px;padding:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,.07);margin-bottom:1.25rem;border:1.5px solid var(--border);}
+.profile-card h3{font-weight:800;font-size:1rem;margin-bottom:1.1rem;display:flex;align-items:center;gap:.5rem;color:var(--primary);}
+.avatar-section{display:flex;align-items:center;gap:1.25rem;margin-bottom:1.25rem;}
+.avatar-preview{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#8B5CF6);color:#fff;font-size:2rem;font-weight:900;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;border:3px solid var(--border);}
+.avatar-preview img{width:100%;height:100%;object-fit:cover;}
+.avatar-info p{font-size:.85rem;color:var(--text-light);margin:.25rem 0;}
+.btn-upload-avatar{display:inline-flex;align-items:center;gap:.4rem;background:#EEF2FF;color:var(--primary);border-radius:10px;padding:.45rem .9rem;font-weight:700;font-size:.88rem;cursor:pointer;border:1.5px solid var(--primary);}
+.theme-grid{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.5rem;}
+.theme-swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .2s;position:relative;}
+.theme-swatch.selected,.theme-swatch:hover{border-color:#1A1A2E;transform:scale(1.15);}
+.theme-swatch input{position:absolute;opacity:0;width:0;height:0;}
+.tab-pills{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;}
+.tab-pill{padding:.45rem 1rem;border-radius:20px;font-weight:700;font-size:.88rem;border:2px solid var(--border);background:var(--white);cursor:pointer;transition:all .2s;}
+.tab-pill.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.tab-section{display:none;}.tab-section.active{display:block;}
+.preview-banner{background:linear-gradient(135deg,#F59E0B22,#F59E0B44);border:2px solid #F59E0B;border-radius:14px;padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.75rem;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-edit-page">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.5rem;">
+    <h1 style="font-size:1.4rem;font-weight:900;">⚙️ إعدادات الحساب</h1>
+    <a href="{{ url_for('student.profile') }}" class="btn-back">
+      <i class="fas fa-arrow-right"></i> رجوع
+    </a>
+  </div>
+
+  <!-- Tab pills -->
+  <div class="tab-pills">
+    <button class="tab-pill active" onclick="showTab('personal',this)">👤 الملف الشخصي</button>
+    <button class="tab-pill" onclick="showTab('security',this)">🔒 الأمان</button>
+    <button class="tab-pill" onclick="showTab('appearance',this)">🎨 المظهر</button>
+  </div>
+
+  <!-- Personal Info -->
+  <div id="personal" class="tab-section active">
+    <div class="profile-card">
+      <h3>👤 المعلومات الشخصية</h3>
+
+      <!-- Avatar -->
+      <div class="avatar-section">
+        <div class="avatar-preview" id="avatarPreview">
+          {% if current_user.avatar and current_user.avatar != 'default_avatar.png' %}
+          <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="صورتي">
+          {% else %}
+          {{ current_user.username[0].upper() }}
+          {% endif %}
+        </div>
+        <div class="avatar-info">
+          <strong>{{ current_user.username }}</strong>
+          <p>الصورة الشخصية — JPG, PNG, GIF (max 5MB)</p>
+          <label class="btn-upload-avatar" for="avatarInput">
+            📷 تغيير الصورة
+          </label>
+        </div>
+      </div>
+
+      <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="profile">
+        <input type="file" id="avatarInput" name="avatar" accept="image/*" style="display:none"
+               onchange="previewAvatar(this)">
+
+        <div class="form-group">
+          <label>الاسم الكامل</label>
+          <input type="text" name="full_name" class="form-control"
+                 value="{{ current_user.full_name or '' }}" placeholder="اسمك الكامل">
+        </div>
+
+        <div class="form-group">
+          <label>اسم المستخدم</label>
+          <input type="text" class="form-control" value="{{ current_user.username }}" disabled
+                 style="background:#f5f5f5;opacity:.7;">
+          <small style="color:var(--text-light);">لا يمكن تغيير اسم المستخدم</small>
+        </div>
+
+        <button type="submit" class="btn-submit">
+          <i class="fas fa-save"></i> حفظ التغييرات
+        </button>
+      </form>
+    </div>
+
+    <!-- Email -->
+    <div class="profile-card">
+      <h3>📧 البريد الإلكتروني</h3>
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="email">
+        <div class="form-group">
+          <label>البريد الحالي</label>
+          <input type="email" name="email" class="form-control"
+                 value="{{ current_user.email }}" required>
+        </div>
+        <button type="submit" class="btn-submit">
+          <i class="fas fa-envelope"></i> تحديث البريد
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Security -->
+  <div id="security" class="tab-section">
+    <div class="profile-card">
+      <h3>🔒 تغيير كلمة المرور</h3>
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="password">
+        <div class="form-group">
+          <label>كلمة المرور الحالية</label>
+          <input type="password" name="current_password" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>كلمة المرور الجديدة</label>
+          <input type="password" name="new_password" class="form-control"
+                 placeholder="6 أحرف على الأقل" required>
+        </div>
+        <div class="form-group">
+          <label>تأكيد كلمة المرور الجديدة</label>
+          <input type="password" name="confirm_password" class="form-control" required>
+        </div>
+        <button type="submit" class="btn-submit">
+          <i class="fas fa-lock"></i> تغيير كلمة المرور
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Appearance -->
+  <div id="appearance" class="tab-section">
+    <div class="profile-card">
+      <h3>🎨 تخصيص المظهر</h3>
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="theme">
+
+        <div class="form-group">
+          <label>لون الواجهة</label>
+          <div class="theme-grid">
+            {% for color, name in theme_colors %}
+            <label class="theme-swatch {% if loop.first %}selected{% endif %}"
+                   style="background:{{ color }}" title="{{ name }}"
+                   onclick="this.classList.add('selected');document.querySelectorAll('.theme-swatch').forEach(s=>s!=this&&s.classList.remove('selected'))">
+              <input type="radio" name="theme_color" value="{{ color }}"
+                     {% if loop.first %}checked{% endif %}>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div style="margin-top:1rem;">
+          <a href="{{ url_for('student.settings') }}" class="btn-back" style="margin-left:.5rem;">
+            ⚙️ إعدادات متقدمة (وضع ليلي، حجم الخط...)
+          </a>
+        </div>
+        <button type="submit" class="btn-submit" style="margin-top:1rem;">
+          <i class="fas fa-palette"></i> حفظ المظهر
+        </button>
+      </form>
+    </div>
+
+    {% if current_user.is_admin() %}
+    <!-- Preview as student -->
+    <div class="profile-card" style="border-color:#F59E0B;">
+      <h3>👀 معاينة كطالب</h3>
+      <p style="color:var(--text-light);margin-bottom:1rem;">شاهد المنصة كما يراها الطلاب</p>
+      <a href="{{ url_for('admin.preview_as_student') }}" class="btn-submit"
+         style="background:linear-gradient(135deg,#F59E0B,#D97706);display:inline-flex;align-items:center;gap:.5rem;">
+        👀 ادخل وضع معاينة الطالب
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Logout button — always visible -->
+  <div style="background:#FEE2E2;border-radius:14px;padding:1.1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
+    <div>
+      <strong style="color:#991B1B;">تسجيل الخروج</strong>
+      <p style="font-size:.85rem;color:#991B1B;opacity:.75;margin:.15rem 0 0;">الخروج من حسابك على هذا الجهاز</p>
+    </div>
+    <a href="{{ url_for('auth.logout') }}"
+       style="background:#EF4444;color:#fff;border-radius:12px;padding:.6rem 1.25rem;font-weight:800;font-size:.9rem;display:flex;align-items:center;gap:.4rem;text-decoration:none;">
+      <i class="fas fa-sign-out-alt"></i> خروج
+    </a>
+  </div>
+
+</div>
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-section').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pill').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function previewAvatar(input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const p = document.getElementById('avatarPreview');
+    p.innerHTML = `<img src="${e.target.result}" alt="صورتي">`;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+</script>
+{% endblock %}

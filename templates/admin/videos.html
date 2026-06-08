@@ -5,9 +5,14 @@
 <div class="admin-page">
   <div class="admin-header">
     <h1><i class="fas fa-video"></i> الفيديوهات التعليمية</h1>
-    <a href="{{ url_for('admin.add_video') }}" class="btn-add">
-      <i class="fas fa-plus"></i> إضافة فيديو
-    </a>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+      <a href="{{ url_for('admin.add_video') }}" class="btn-add">
+        <i class="fab fa-youtube"></i> من YouTube
+      </a>
+      <a href="{{ url_for('admin.upload_local_video') }}" class="btn-add" style="background:linear-gradient(135deg,#10B981,#059669);">
+        <i class="fas fa-upload"></i> رفع من جهازي
+      </a>
+    </div>
   </div>
 
   <div class="filter-bar">

@@ -364,3 +364,174 @@ def results():
     attempts = QuizAttempt.query.filter(QuizAttempt.completed_at.isnot(None))\
                                 .order_by(QuizAttempt.completed_at.desc()).limit(50).all()
     return render_template('admin/results.html', attempts=attempts)
+
+
+# ═══ PREVIEW AS STUDENT ═══════════════════════════════════════
+@admin.route('/preview-as-student')
+@admin_required
+def preview_as_student():
+    from flask import session
+    session['preview_mode'] = True
+    flash('أنت الآن في وضع معاينة الطالب 👀', 'info')
+    return redirect(url_for('student.dashboard'))
+
+
+@admin.route('/exit-preview')
+@login_required
+def exit_preview():
+    from flask import session
+    session.pop('preview_mode', None)
+    flash('عدت لحساب المشرف ✅', 'success')
+    return redirect(url_for('admin.dashboard'))
+
+
+# ═══ VIDEO UPLOAD FROM DEVICE ═════════════════════════════════
+@admin.route('/videos/upload-local', methods=['GET', 'POST'])
+@admin_required
+def upload_local_video():
+    subjects = Subject.query.filter_by(is_active=True).all()
+    if request.method == 'POST':
+        if 'video_file' not in request.files:
+            flash('لم يتم اختيار ملف', 'danger')
+            return redirect(request.url)
+        f = request.files['video_file']
+        if not f or not f.filename:
+            flash('لم يتم اختيار ملف', 'danger')
+            return redirect(request.url)
+        ext = f.filename.rsplit('.', 1)[-1].lower()
+        if ext not in {'mp4', 'webm', 'mov', 'avi', 'mkv'}:
+            flash('صيغة الفيديو غير مدعومة — استعمل MP4 أو WEBM', 'danger')
+            return redirect(request.url)
+        import uuid
+        fname = f'{uuid.uuid4().hex}.{ext}'
+        folder = os.path.join('app', 'static', 'uploads', 'videos')
+        os.makedirs(folder, exist_ok=True)
+        f.save(os.path.join(folder, fname))
+        v = Video(
+            title=request.form['title'],
+            description=request.form.get('description', ''),
+            subject_id=int(request.form['subject_id']),
+            duration=request.form.get('duration', ''),
+            order=int(request.form.get('order', 0)),
+            youtube_url=f'/static/uploads/videos/{fname}',
+            youtube_id=None,
+        )
+        # Store local path differently
+        v.youtube_url  = ''
+        v.youtube_id   = ''
+        # We'll store the local path in a new way
+        from app.models import db as _db
+        _db.session.add(v)
+        _db.session.flush()
+        # Patch: store local video path in youtube_url field with prefix LOCAL:
+        v.youtube_url = f'LOCAL:/static/uploads/videos/{fname}'
+        _db.session.commit()
+        flash('تم رفع الفيديو بنجاح ✅', 'success')
+        return redirect(url_for('admin.videos'))
+    return render_template('admin/upload_local_video.html', subjects=subjects)
+
+
+# ═══ LESSON IMPORT (PDF / WORD / URL) ═════════════════════════
+@admin.route('/lessons/import', methods=['GET', 'POST'])
+@admin_required
+def import_lesson():
+    subjects = Subject.query.filter_by(is_active=True).all()
+    if request.method == 'POST':
+        import_type = request.form.get('import_type', 'file')
+        title      = request.form.get('title', '').strip()
+        subject_id = int(request.form.get('subject_id', 0))
+        content    = ''
+
+        if import_type == 'url':
+            url = request.form.get('url', '').strip()
+            try:
+                import urllib.request
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                html = urllib.request.urlopen(req, timeout=10).read().decode('utf-8', errors='ignore')
+                # Basic extraction
+                import re
+                html = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
+                html = re.sub(r'<style[^>]*>.*?</style>',  '', html, flags=re.DOTALL)
+                html = re.sub(r'<nav[^>]*>.*?</nav>',      '', html, flags=re.DOTALL)
+                html = re.sub(r'<header[^>]*>.*?</header>', '', html, flags=re.DOTALL)
+                html = re.sub(r'<footer[^>]*>.*?</footer>', '', html, flags=re.DOTALL)
+                # Get main content tags
+                for tag in ['article', 'main', '.content', '#content']:
+                    m = re.search(rf'<{tag}[^>]*>(.*?)</{tag}>', html, re.DOTALL)
+                    if m:
+                        content = m.group(1)[:8000]
+                        break
+                if not content:
+                    content = re.sub(r'<[^>]+>', ' ', html)
+                    content = re.sub(r'\s+', ' ', content).strip()[:5000]
+                    content = f'<p>{content}</p>'
+            except Exception as e:
+                flash(f'خطأ في تحميل الرابط: {str(e)}', 'danger')
+                return render_template('admin/import_lesson.html', subjects=subjects)
+
+        elif import_type == 'file':
+            if 'lesson_file' not in request.files:
+                flash('لم يتم اختيار ملف', 'danger')
+                return redirect(request.url)
+            f = request.files['lesson_file']
+            ext = f.filename.rsplit('.', 1)[-1].lower() if f.filename else ''
+
+            if ext == 'pdf':
+                try:
+                    import pdfplumber
+                    import io
+                    with pdfplumber.open(io.BytesIO(f.read())) as pdf:
+                        text = '\n'.join(p.extract_text() or '' for p in pdf.pages[:20])
+                    paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
+                    content = ''.join(f'<p>{p}</p>' for p in paragraphs[:100])
+                except ImportError:
+                    # fallback without pdfplumber
+                    content = '<p>⚠️ لم يتم تثبيت مكتبة pdfplumber — يرجى نسخ المحتوى يدوياً.</p>'
+                except Exception as e:
+                    flash(f'خطأ في قراءة PDF: {str(e)}', 'danger')
+                    return render_template('admin/import_lesson.html', subjects=subjects)
+
+            elif ext in ('doc', 'docx'):
+                try:
+                    import docx2txt, io
+                    text = docx2txt.process(io.BytesIO(f.read()))
+                    paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
+                    content = ''.join(f'<p>{p}</p>' for p in paragraphs[:100])
+                except ImportError:
+                    content = '<p>⚠️ لم يتم تثبيت مكتبة docx2txt — يرجى نسخ المحتوى يدوياً.</p>'
+                except Exception as e:
+                    flash(f'خطأ في قراءة الملف: {str(e)}', 'danger')
+                    return render_template('admin/import_lesson.html', subjects=subjects)
+
+            elif ext == 'txt':
+                text = f.read().decode('utf-8', errors='ignore')
+                paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
+                content = ''.join(f'<p>{p}</p>' for p in paragraphs[:100])
+
+            else:
+                flash('صيغة غير مدعومة — استعمل PDF, DOCX, أو TXT', 'danger')
+                return render_template('admin/import_lesson.html', subjects=subjects)
+
+        elif import_type == 'text':
+            raw = request.form.get('raw_text', '')
+            paragraphs = [p.strip() for p in raw.split('\n') if p.strip()]
+            content = ''.join(f'<p>{p}</p>' for p in paragraphs)
+
+        if not content:
+            content = '<p>المحتوى فارغ — يرجى التعديل.</p>'
+        if not title:
+            title = 'درس مستورد'
+
+        lesson = Lesson(
+            title=title, content=content,
+            subject_id=subject_id,
+            order=int(request.form.get('order', 0)),
+            duration=int(request.form.get('duration', 15)),
+            difficulty=request.form.get('difficulty', 'easy'),
+        )
+        db.session.add(lesson)
+        db.session.commit()
+        flash('تم استيراد الدرس بنجاح ✅ — يمكنك تعديله الآن', 'success')
+        return redirect(url_for('admin.edit_lesson', lid=lesson.id))
+
+    return render_template('admin/import_lesson.html', subjects=subjects)

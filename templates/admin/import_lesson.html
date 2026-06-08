@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}استيراد درس{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1><i class="fas fa-file-import"></i> استيراد درس</h1>
+    <a href="{{ url_for('admin.lessons') }}" class="btn-back"><i class="fas fa-arrow-right"></i> العودة</a>
+  </div>
+
+  <form method="POST" enctype="multipart/form-data" class="admin-form" id="importForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="import_type" id="importType" value="file">
+
+    <!-- Import type tabs -->
+    <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+      <button type="button" class="tab-pill active" onclick="setType('file',this)" id="t_file"
+              style="padding:.5rem 1.1rem;border-radius:20px;font-weight:700;border:2px solid var(--primary);background:var(--primary);color:#fff;font-family:inherit;cursor:pointer;">
+        📎 رفع ملف
+      </button>
+      <button type="button" class="tab-pill" onclick="setType('url',this)" id="t_url"
+              style="padding:.5rem 1.1rem;border-radius:20px;font-weight:700;border:2px solid var(--border);background:var(--white);font-family:inherit;cursor:pointer;">
+        🌐 من رابط إنترنت
+      </button>
+      <button type="button" class="tab-pill" onclick="setType('text',this)" id="t_text"
+              style="padding:.5rem 1.1rem;border-radius:20px;font-weight:700;border:2px solid var(--border);background:var(--white);font-family:inherit;cursor:pointer;">
+        ✍️ نص مباشر
+      </button>
+    </div>
+
+    <div class="form-grid two-col">
+      <div class="form-group">
+        <label>عنوان الدرس <span class="req">*</span></label>
+        <input type="text" name="title" class="form-control" placeholder="عنوان الدرس" required>
+      </div>
+      <div class="form-group">
+        <label>المادة <span class="req">*</span></label>
+        <select name="subject_id" class="form-control" required>
+          <option value="">-- اختر المادة --</option>
+          {% for s in subjects %}
+          <option value="{{ s.id }}">{{ s.icon }} {{ s.name_ar or s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>الصعوبة</label>
+        <select name="difficulty" class="form-control">
+          <option value="easy">🟢 سهل</option>
+          <option value="medium">🟡 متوسط</option>
+          <option value="hard">🔴 صعب</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>المدة (دقيقة)</label>
+        <input type="number" name="duration" class="form-control" value="15" min="1">
+      </div>
+    </div>
+
+    <!-- File upload -->
+    <div id="section_file" class="import-section">
+      <div class="form-group">
+        <label>الملف <span class="req">*</span></label>
+        <div style="border:3px dashed var(--border);border-radius:14px;padding:2rem;text-align:center;cursor:pointer;background:var(--bg);"
+             onclick="document.getElementById('lessonFile').click()">
+          <div style="font-size:2.5rem;margin-bottom:.5rem;" id="fileIcon">📄</div>
+          <p style="font-weight:700;" id="fileName">اضغط لاختيار الملف</p>
+          <small style="color:var(--text-light);">PDF, DOCX, DOC, TXT — حجم أقصى 16MB</small>
+        </div>
+        <input type="file" id="lessonFile" name="lesson_file"
+               accept=".pdf,.doc,.docx,.txt" style="display:none"
+               onchange="document.getElementById('fileIcon').textContent='✅';document.getElementById('fileName').textContent=this.files[0].name">
+      </div>
+    </div>
+
+    <!-- URL import -->
+    <div id="section_url" class="import-section" style="display:none">
+      <div class="form-group">
+        <label>رابط الصفحة 🌐</label>
+        <input type="url" name="url" class="form-control"
+               placeholder="https://ar.wikipedia.org/wiki/...">
+        <small style="color:var(--text-light);">سيتم استخراج النص من الصفحة تلقائياً</small>
+      </div>
+    </div>
+
+    <!-- Text import -->
+    <div id="section_text" class="import-section" style="display:none">
+      <div class="form-group">
+        <label>النص المباشر</label>
+        <textarea name="raw_text" class="form-control" rows="10"
+                  placeholder="الصق النص هنا مباشرة..."></textarea>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-submit">
+        <i class="fas fa-file-import"></i> استيراد الدرس
+      </button>
+      <a href="{{ url_for('admin.lessons') }}" class="btn-cancel">إلغاء</a>
+    </div>
+  </form>
+</div>
+
+<script>
+function setType(type, btn) {
+  document.getElementById('importType').value = type;
+  document.querySelectorAll('.import-section').forEach(s => s.style.display = 'none');
+  document.getElementById('section_' + type).style.display = 'block';
+  document.querySelectorAll('[id^="t_"]').forEach(b => {
+    b.style.background = 'var(--white)';
+    b.style.color      = 'var(--text)';
+    b.style.borderColor= 'var(--border)';
+  });
+  btn.style.background = 'var(--primary)';
+  btn.style.color      = '#fff';
+  btn.style.borderColor= 'var(--primary)';
+}
+</script>
+{% endblock %}

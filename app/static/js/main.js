@@ -127,3 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
   `;
   document.head.appendChild(style);
 });
+
+// Mobile logout button
+function checkMobileLogout() {
+  const btn = document.getElementById('mobileLogout');
+  if (!btn) return;
+  btn.style.display = window.innerWidth <= 768 ? 'block' : 'none';
+}
+window.addEventListener('resize', checkMobileLogout);
+document.addEventListener('DOMContentLoaded', checkMobileLogout);

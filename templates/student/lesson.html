@@ -15,8 +15,6 @@
 .btn-focus-start:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.2);}
 .btn-read-normal{display:flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.2);color:#fff;border-radius:12px;padding:.65rem 1.25rem;font-weight:700;font-size:.9rem;border:2px solid rgba(255,255,255,.4);cursor:pointer;font-family:inherit;transition:all .2s;}
 .btn-read-normal:hover{background:rgba(255,255,255,.3);}
-
-/* Normal reading mode */
 .normal-content{background:#fff;border-radius:18px;padding:2rem;box-shadow:0 2px 16px rgba(0,0,0,.06);font-size:var(--fs-lg,16px);line-height:2;color:var(--adhd-text,#1A1A2E);}
 .normal-content h1,.normal-content h2,.normal-content h3{color:{{ lesson.subject.color }};margin:1rem 0 .5rem;}
 .normal-content p{margin-bottom:.9rem;}
@@ -27,7 +25,6 @@
 .normal-content strong{color:{{ lesson.subject.color }};}
 .normal-content ul,.normal-content ol{margin:.8rem 0 .8rem 1.5rem;}
 .normal-content li{margin-bottom:.4rem;}
-
 .lesson-nav-btns{display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap;}
 .btn-lesson-nav{display:flex;align-items:center;gap:.4rem;padding:.6rem 1.1rem;border-radius:12px;font-weight:700;font-size:.9rem;border:2px solid #E2E8F0;background:#fff;transition:all .2s;}
 .btn-lesson-nav:hover{border-color:{{ lesson.subject.color }};color:{{ lesson.subject.color }};}
@@ -36,8 +33,11 @@
 .completed-banner-adhd{background:#D1FAE5;border:2px solid #10B981;border-radius:14px;padding:1rem 1.25rem;text-align:center;font-weight:800;font-size:1rem;color:#065F46;margin-bottom:1rem;}
 .btn-complete-adhd{width:100%;padding:1rem;border:none;border-radius:14px;background:linear-gradient(135deg,#10B981,#059669);color:#fff;font-size:1.05rem;font-weight:900;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.5rem;margin-bottom:1rem;animation:pulse-green 2s ease infinite;}
 @keyframes pulse-green{0%,100%{box-shadow:0 4px 14px rgba(16,185,129,.35)}50%{box-shadow:0 6px 24px rgba(16,185,129,.55)}}
-.btn-complete-adhd:hover{transform:translateY(-2px);}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/edu_games.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -61,20 +61,14 @@
     <div class="lhc-title">{{ lesson.title }}</div>
     {% if lesson.summary %}<div class="lhc-summary">{{ lesson.summary }}</div>{% endif %}
     <div class="lhc-actions">
-      <button class="btn-focus-start" onclick="startFocusMode()">
-        🎯 وضع التركيز
-      </button>
-      <button class="btn-read-normal" onclick="document.getElementById('normalMode').scrollIntoView({behavior:'smooth'})">
-        📖 قراءة عادية
-      </button>
+      <button class="btn-focus-start" onclick="startFocusMode()">🎯 وضع التركيز</button>
+      <button class="btn-read-normal" onclick="document.getElementById('normalMode').scrollIntoView({behavior:'smooth'})">📖 قراءة عادية</button>
     </div>
   </div>
 
   <!-- Normal Reading Mode -->
   <div id="normalMode">
-    <div class="normal-content">
-      {{ lesson.content | safe }}
-    </div>
+    <div class="normal-content">{{ lesson.content | safe }}</div>
 
     <div style="margin-top:1.25rem;">
       {% if not progress.completed %}
@@ -102,35 +96,35 @@
       </div>
     </div>
 
-    <!-- Games -->
-    <div class="game-section" style="margin-top:1.5rem;">
-      <h3>🎮 العب وتعلّم!</h3>
-      <div class="game-tabs">
-        <button class="gtab active" onclick="switchGame('memory',this)">🧠 الذاكرة</button>
-        <button class="gtab" onclick="switchGame('scramble',this)">🔤 مختلطة</button>
-        <button class="gtab" onclick="switchGame('rapid',this)">⚡ سريع</button>
+    <!-- ═══ EDUCATIONAL GAMES ═══════════════════════════════════ -->
+    <div class="edu-games-section" id="gamesSection">
+      <h3>🎮 تحقق من فهمك!</h3>
+      <p style="text-align:center;font-size:.85rem;opacity:.65;margin-bottom:1rem;">ألعاب تعليمية مبنية على محتوى هذا الدرس</p>
+
+      <div class="eg-tabs">
+        <button class="eg-tab active" onclick="switchEduGame('tf',   this)">🧠 صح أم خطأ</button>
+        <button class="eg-tab"        onclick="switchEduGame('fill', this)">✍️ أكمل الفراغ</button>
+        <button class="eg-tab"        onclick="switchEduGame('match',this)">🔗 طابق</button>
       </div>
-      <div class="game-panel active" id="memoryGame">
-        <div class="score-display">⏱️ <span id="memTimer">0</span>ث | 🎯 <span id="memTries">0</span> محاولة</div>
-        <div class="game-grid" id="memoryGrid"></div>
-        <div style="text-align:center;margin-top:.75rem;">
-          <button class="btn-game" onclick="initMemory()">🔄 جديد</button>
+
+      <!-- Panel 1: True/False -->
+      <div id="panel_tf" class="eg-panel active">
+        <div id="tf_container">
+          <div class="eg-no-content">⏳ جاري تحليل محتوى الدرس...</div>
         </div>
       </div>
-      <div class="game-panel" id="scrambleGame">
-        <div class="scramble-game">
-          <p class="scramble-hint" id="scrambleHint">رتّب الحروف لتكوين الكلمة</p>
-          <div class="scramble-word" id="scrambleWord">----</div>
-          <br>
-          <input type="text" class="scramble-input" id="scrambleInput" placeholder="اكتب هنا..." onkeyup="checkScramble(event)">
-          <br>
-          <div class="score-display" id="scrambleScore">النقاط: 0</div>
-          <button class="btn-game" onclick="nextScramble()">التالي ⏭️</button>
+
+      <!-- Panel 2: Fill in Blank -->
+      <div id="panel_fill" class="eg-panel">
+        <div id="fill_container">
+          <div class="eg-no-content">⏳ جاري تحليل محتوى الدرس...</div>
         </div>
       </div>
-      <div class="game-panel" id="rapidGame">
-        <div id="rapidContent" style="text-align:center;">
-          <button class="btn-game" onclick="startRapid()">▶️ ابدأ السباق</button>
+
+      <!-- Panel 3: Match -->
+      <div id="panel_match" class="eg-panel">
+        <div id="match_container">
+          <div class="eg-no-content">⏳ جاري تحليل محتوى الدرس...</div>
         </div>
       </div>
     </div>
@@ -139,62 +133,52 @@
 
 <!-- ═══ FOCUS MODE OVERLAY ════════════════════════════════════════ -->
 <div class="focus-mode-overlay" id="focusOverlay">
-  <!-- Top bar -->
   <div class="focus-topbar">
     <div class="focus-title">🎯 {{ lesson.title }}</div>
     <div style="display:flex;align-items:center;gap:.75rem;">
       <div class="focus-timer" id="focusTimerDisplay">
         <i class="fas fa-clock"></i>
-        <span id="focusTimerVal">{{ settings.focus_duration * 60 if settings else 1500 }}</span>
+        <span id="focusTimerVal">{{ '%d:%02d' % (settings.focus_duration, 0) if settings else '25:00' }}</span>
       </div>
       <button onclick="exitFocus()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--adhd-muted);">✕ خروج</button>
     </div>
   </div>
-
-  <!-- Progress track -->
   <div class="focus-progress-track">
     <div class="focus-progress-fill" id="focusProgressFill"></div>
   </div>
-
-  <!-- Chunks -->
   <div class="focus-chunk-wrap" id="focusChunkWrap">
     {% set chunks_list = chunks %}
     {% if chunks_list %}
       {% for c in chunks_list %}
       <div class="focus-chunk {% if loop.first %}active{% endif %}" id="fc_{{ loop.index0 }}">
         <span class="chunk-type-badge chunk-type-{{ c.chunk_type }}">
-          {{ c.emoji }} {{ {'text':'نص','tip':'تلميح','example':'مثال','summary':'ملخص'}.get(c.chunk_type, 'نص') }}
+          {{ c.emoji }} {{ {'text':'نص','tip':'تلميح','example':'مثال','summary':'ملخص'}.get(c.chunk_type,'نص') }}
         </span>
         {% if c.title %}<div class="chunk-title">{{ c.title }}</div>{% endif %}
         <div class="chunk-content">{{ c.content | safe }}</div>
       </div>
       {% endfor %}
     {% else %}
-      <!-- No chunks — split content automatically -->
       <div class="focus-chunk active" id="fc_0">
         <span class="chunk-type-badge chunk-type-text">📖 محتوى الدرس</span>
-        <div class="chunk-content" id="focusAutoContent"></div>
+        <div class="chunk-content">{{ lesson.content | safe }}</div>
       </div>
     {% endif %}
-
-    <!-- Complete chunk -->
     <div class="focus-chunk" id="fc_complete">
       <div style="text-align:center;padding:2rem 0;">
         <div style="font-size:4rem;margin-bottom:1rem;">🎉</div>
         <h2 style="font-size:1.6rem;font-weight:900;color:var(--adhd-primary);margin-bottom:.5rem;">أنهيت الدرس!</h2>
-        <p style="color:var(--adhd-muted);margin-bottom:1.5rem;">رائع! لقد أكملت كل الأجزاء بنجاح</p>
+        <p style="color:var(--adhd-muted);margin-bottom:1.5rem;">رائع! أكملت جميع الأجزاء</p>
         {% if not progress.completed %}
         <button class="btn-focus-complete" onclick="completeLesson({{ lesson.id }}, {{ focus_session_id }})">
           احصل على 10 نقاط 🌟
         </button>
         {% else %}
-        <div class="completed-banner-adhd" style="display:inline-block;">✅ تم الإكمال مسبقاً</div>
+        <div class="completed-banner-adhd" style="display:inline-block;">✅ تم الإكمال</div>
         {% endif %}
       </div>
     </div>
   </div>
-
-  <!-- Navigation -->
   <div class="focus-chunk-nav">
     <button class="btn-focus-nav btn-focus-prev" id="focusPrevBtn" onclick="focusNavigate(-1)" style="display:none;">
       <i class="fas fa-chevron-right"></i> السابق
@@ -218,49 +202,87 @@
   </div>
 </div>
 
-<style>
-.game-section{background:linear-gradient(135deg,#1E1E2E,#2D2D44);border-radius:20px;padding:1.5rem;margin-top:1.5rem;color:#fff;}
-.game-section h3{font-size:1.1rem;font-weight:900;margin-bottom:1rem;text-align:center;}
-.game-tabs{display:flex;gap:.5rem;margin-bottom:1rem;justify-content:center;}
-.gtab{padding:.4rem .9rem;border-radius:20px;border:2px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);font-weight:700;font-size:.85rem;cursor:pointer;background:none;font-family:inherit;transition:all .2s;}
-.gtab.active{background:#6C63FF;border-color:#6C63FF;color:#fff;}
-.game-panel{display:none;}.game-panel.active{display:block;}
-.game-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;}
-.mem-card{aspect-ratio:1;border-radius:12px;background:#3D3D5C;border:2px solid #5B5B80;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.4rem;transition:all .3s;user-select:none;}
-.mem-card.flipped{background:#6C63FF;border-color:#8B83FF;}
-.mem-card.matched{background:#10B981;border-color:#34D399;cursor:default;}
-.mem-card.wrong-anim{animation:shake .4s;}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-.scramble-game{text-align:center;}
-.scramble-word{font-size:2.2rem;font-weight:900;letter-spacing:.3rem;color:#A78BFA;margin:1rem 0;}
-.scramble-input{border:3px solid #6C63FF;border-radius:12px;padding:.6rem 1rem;font-size:1.2rem;text-align:center;width:200px;font-family:inherit;font-weight:700;background:#1A1A2E;color:#fff;}
-.scramble-hint{font-size:.82rem;opacity:.6;margin-bottom:.3rem;}
-.score-display{font-size:.95rem;font-weight:800;color:#F59E0B;text-align:center;margin:.5rem 0;}
-.btn-game{background:linear-gradient(135deg,#6C63FF,#8B5CF6);color:#fff;border:none;border-radius:12px;padding:.6rem 1.3rem;font-weight:800;font-size:.9rem;cursor:pointer;margin-top:.6rem;font-family:inherit;}
-</style>
-
 <script>
 const rawContent = {{ lesson.content | tojson }};
 const hasChunks  = {{ 'true' if chunks else 'false' }};
-const totalChunks = {{ chunks|length if chunks else 1 }} + 1; // +1 for complete screen
+const totalChunks = {{ chunks|length if chunks else 1 }} + 1;
 let focusCurrent = 0;
 let focusTimerInterval = null;
 let focusTimeLeft = {{ settings.focus_duration * 60 if settings else 1500 }};
 
-// ── Focus Mode ─────────────────────────────────────────────
+// ═══ Initialize Educational Games ════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const extractor = new LessonContentExtractor(rawContent);
+
+    // Game 1: True/False
+    const tfQuestions = extractor.generateTrueFalseQuestions();
+    const tfContainer = document.getElementById('tf_container');
+    if (tfQuestions.length >= 2) {
+      const tfGame = new TrueFalseGame(tfContainer, tfQuestions, null);
+      tfContainer.innerHTML = `
+        <div style="text-align:center;padding:1rem 0;">
+          <div style="font-size:2rem;margin-bottom:.5rem;">🧠</div>
+          <p style="font-weight:700;margin-bottom:.25rem;">اختبر فهمك للدرس</p>
+          <p style="font-size:.85rem;opacity:.65;margin-bottom:1rem;">${tfQuestions.length} سؤال — عندك 10 ثوانٍ لكل سؤال</p>
+          <button class="eg-restart-btn" onclick="window._pendingTF.start()">▶️ ابدأ اللعبة</button>
+        </div>`;
+      window._pendingTF = new TrueFalseGame(tfContainer, tfQuestions, null);
+    } else {
+      tfContainer.innerHTML = `<div class="eg-no-content">📝 يحتاج الدرس محتوى أكثر لتوليد أسئلة صح/خطأ<br><small>أضف نصوصاً أو جملاً للدرس من لوحة التحكم</small></div>`;
+    }
+
+    // Game 2: Fill in Blank
+    const blanks = extractor.generateFillBlanks();
+    const fillContainer = document.getElementById('fill_container');
+    if (blanks.length >= 1) {
+      window._pendingFB = new FillBlankGame(fillContainer, blanks, null);
+      fillContainer.innerHTML = `
+        <div style="text-align:center;padding:1rem 0;">
+          <div style="font-size:2rem;margin-bottom:.5rem;">✍️</div>
+          <p style="font-weight:700;margin-bottom:.25rem;">أكمل الجمل الناقصة</p>
+          <p style="font-size:.85rem;opacity:.65;margin-bottom:1rem;">${blanks.length} جملة من محتوى الدرس</p>
+          <button class="eg-restart-btn" onclick="window._pendingFB.start()">▶️ ابدأ اللعبة</button>
+        </div>`;
+    } else {
+      fillContainer.innerHTML = `<div class="eg-no-content">✍️ يحتاج الدرس كلمات غامقة (<strong>bold</strong>) لتوليد أسئلة أكمل الفراغ<br><small>استعمل محرر الدروس لتغميق الكلمات المهمة</small></div>`;
+    }
+
+    // Game 3: Match
+    const pairs = extractor.generateMatchPairs();
+    const matchContainer = document.getElementById('match_container');
+    if (pairs.length >= 2) {
+      window._pendingMatch = new MatchGame(matchContainer, pairs, null);
+      matchContainer.innerHTML = `
+        <div style="text-align:center;padding:1rem 0;">
+          <div style="font-size:2rem;margin-bottom:.5rem;">🔗</div>
+          <p style="font-weight:700;margin-bottom:.25rem;">طابق المصطلح بتعريفه</p>
+          <p style="font-size:.85rem;opacity:.65;margin-bottom:1rem;">${pairs.length} أزواج من محتوى الدرس</p>
+          <button class="eg-restart-btn" onclick="window._pendingMatch.start()">▶️ ابدأ اللعبة</button>
+        </div>`;
+    } else {
+      matchContainer.innerHTML = `<div class="eg-no-content">🔗 يحتاج الدرس جداول أو كلمات غامقة لتوليد لعبة المطابقة</div>`;
+    }
+
+  } catch(e) {
+    console.warn('Games init error:', e);
+  }
+});
+
+function switchEduGame(name, btn) {
+  document.querySelectorAll('.eg-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.eg-tab').forEach(b  => b.classList.remove('active'));
+  document.getElementById('panel_' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ═══ Focus Mode ═══════════════════════════════════════════════
 function startFocusMode() {
-  if (!hasChunks) buildAutoChunks();
   buildFocusDots();
   document.getElementById('focusOverlay').classList.add('active');
   document.body.style.overflow = 'hidden';
   startFocusTimer();
   updateFocusNav();
-}
-
-function buildAutoChunks() {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = rawContent;
-  document.getElementById('focusAutoContent').innerHTML = tmp.innerHTML;
 }
 
 function buildFocusDots() {
@@ -275,10 +297,8 @@ function buildFocusDots() {
 }
 
 function goToChunk(idx) {
-  const chunks = document.querySelectorAll('.focus-chunk');
-  chunks.forEach(c => c.classList.remove('active'));
-  const target = document.getElementById('fc_' + idx) ||
-                 document.getElementById('fc_complete');
+  document.querySelectorAll('.focus-chunk').forEach(c => c.classList.remove('active'));
+  const target = document.getElementById('fc_' + idx) || document.getElementById('fc_complete');
   if (target) target.classList.add('active');
   focusCurrent = idx;
   updateFocusNav();
@@ -289,25 +309,19 @@ function goToChunk(idx) {
 function focusNavigate(dir) {
   const next = focusCurrent + dir;
   if (next < 0) return;
-  const isComplete = next >= totalChunks - 1;
-  if (isComplete) {
+  if (next >= totalChunks - 1) {
     document.querySelectorAll('.focus-chunk').forEach(c => c.classList.remove('active'));
     document.getElementById('fc_complete').classList.add('active');
     focusCurrent = totalChunks - 1;
   } else {
     goToChunk(next);
   }
-  updateFocusNav();
-  updateFocusDots();
-  updateFocusProgress();
+  updateFocusNav(); updateFocusDots(); updateFocusProgress();
 }
 
 function updateFocusNav() {
-  const prev = document.getElementById('focusPrevBtn');
-  const next = document.getElementById('focusNextBtn');
-  prev.style.display = focusCurrent > 0 ? 'flex' : 'none';
-  const isLast = focusCurrent >= totalChunks - 1;
-  next.style.display = isLast ? 'none' : 'flex';
+  document.getElementById('focusPrevBtn').style.display = focusCurrent > 0 ? 'flex' : 'none';
+  document.getElementById('focusNextBtn').style.display = focusCurrent >= totalChunks - 1 ? 'none' : 'flex';
 }
 
 function updateFocusDots() {
@@ -317,22 +331,22 @@ function updateFocusDots() {
 }
 
 function updateFocusProgress() {
-  const pct = (focusCurrent / (totalChunks - 1)) * 100;
-  document.getElementById('focusProgressFill').style.width = pct + '%';
+  document.getElementById('focusProgressFill').style.width =
+    (focusCurrent / (totalChunks - 1) * 100) + '%';
 }
 
 function startFocusTimer() {
   const el = document.getElementById('focusTimerVal');
-  const display = document.getElementById('focusTimerDisplay');
+  const disp = document.getElementById('focusTimerDisplay');
   focusTimerInterval = setInterval(() => {
     focusTimeLeft--;
     const m = Math.floor(focusTimeLeft / 60);
     const s = focusTimeLeft % 60;
-    el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
-    if (focusTimeLeft <= 60) display.classList.add('urgent');
+    if (el) el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    if (focusTimeLeft <= 60) disp?.classList.add('urgent');
     if (focusTimeLeft <= 0) {
       clearInterval(focusTimerInterval);
-      showToast('انتهى وقت التركيز! خذ راحة قصيرة 😊', '⏰');
+      if (window.showToast) showToast('انتهى وقت التركيز — استرح قليلاً 😊', '⏰');
     }
   }, 1000);
 }
@@ -341,19 +355,18 @@ function exitFocus() {
   clearInterval(focusTimerInterval);
   document.getElementById('focusOverlay').classList.remove('active');
   document.body.style.overflow = '';
-  // End session
   fetch(`/focus/{{ focus_session_id }}/end`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'},
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'},
     body: JSON.stringify({completed: focusCurrent >= totalChunks - 1})
   });
 }
 
-// ── Complete lesson ─────────────────────────────────────────
-function completeLesson(id, sessionId) {
+// ═══ Complete Lesson ══════════════════════════════════════════
+function completeLesson(id) {
   fetch(`/lesson/${id}/complete`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'}
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'}
   }).then(r => r.json()).then(d => {
     if (d.success) {
       exitFocus();
@@ -368,109 +381,17 @@ function completeLesson(id, sessionId) {
 function spawnConfetti() {
   const wrap = document.getElementById('confettiWrap');
   const e = ['🌟','⭐','🎉','🏆','✨','🎊','💫','🎈'];
-  for(let i=0;i<24;i++){
-    const el=document.createElement('span'); el.textContent=e[Math.floor(Math.random()*e.length)];
-    el.style.cssText=`position:absolute;font-size:${16+Math.random()*18}px;left:${Math.random()*100}%;animation:fall ${1.5+Math.random()*2}s ease forwards;animation-delay:${Math.random()*.8}s;`;
+  for (let i = 0; i < 24; i++) {
+    const el = document.createElement('span');
+    el.textContent = e[Math.floor(Math.random() * e.length)];
+    el.style.cssText = `position:absolute;font-size:${16+Math.random()*18}px;left:${Math.random()*100}%;animation:fall ${1.5+Math.random()*2}s ease forwards;animation-delay:${Math.random()*.8}s;`;
     wrap.appendChild(el);
   }
 }
 
 function closeCelebration() {
-  document.getElementById('celebrationModal').style.display='none';
+  document.getElementById('celebrationModal').style.display = 'none';
   location.reload();
-}
-
-// ═══ GAMES ═══════════════════════════════════════════════════
-function extractWords() {
-  const tmp = document.createElement('div'); tmp.innerHTML = rawContent;
-  const text = tmp.textContent;
-  const words = text.match(/[\u0600-\u06FF]{4,}/g) || [];
-  const unique = [...new Set(words)].filter(w => w.length>=4 && w.length<=8);
-  return unique.length >= 4 ? unique : ['تعلّم','درس','فهم','علم','كتاب','طالب','مدرسة','عدد'];
-}
-const WORDS = extractWords();
-const EMOJIS = ['🔢','📚','🔬','🌍','✏️','🏛️','⭐','🎯'];
-let memFlipped=[],memMatched=0,memTries=0,memTimerVal=0,memInterval=null;
-
-function initMemory() {
-  clearInterval(memInterval); memFlipped=[]; memMatched=0; memTries=0; memTimerVal=0;
-  document.getElementById('memTimer').textContent='0';
-  document.getElementById('memTries').textContent='0';
-  const items=[...EMOJIS.slice(0,4),...EMOJIS.slice(0,4)].sort(()=>Math.random()-.5);
-  const grid=document.getElementById('memoryGrid'); grid.innerHTML='';
-  items.forEach((emoji,i)=>{
-    const card=document.createElement('div'); card.className='mem-card';
-    card.dataset.value=emoji; card.dataset.index=i; card.textContent='؟';
-    card.onclick=()=>flipCard(card); grid.appendChild(card);
-  });
-  memInterval=setInterval(()=>{memTimerVal++;document.getElementById('memTimer').textContent=memTimerVal;},1000);
-}
-
-function flipCard(card) {
-  if(card.classList.contains('matched')||card.classList.contains('flipped')||memFlipped.length>=2)return;
-  card.classList.add('flipped'); card.textContent=card.dataset.value; memFlipped.push(card);
-  if(memFlipped.length===2){
-    memTries++; document.getElementById('memTries').textContent=memTries;
-    if(memFlipped[0].dataset.value===memFlipped[1].dataset.value){
-      memFlipped.forEach(c=>c.classList.add('matched')); memFlipped=[]; memMatched++;
-      if(memMatched===4){clearInterval(memInterval);setTimeout(()=>showToast('🏆 أحسنت! أكملت اللعبة!','🏆'),200);}
-    } else {
-      const tf=[...memFlipped]; memFlipped=[];
-      tf.forEach(c=>c.classList.add('wrong-anim'));
-      setTimeout(()=>{tf.forEach(c=>{c.classList.remove('flipped','wrong-anim');c.textContent='؟';});},900);
-    }
-  }
-}
-initMemory();
-
-let scrambleIdx=0,scrambleScore=0,currentWord='';
-function scramble(w){return w.split('').sort(()=>Math.random()-.5).join('');}
-function nextScramble(){
-  const word=WORDS[scrambleIdx%WORDS.length]; currentWord=word; scrambleIdx++;
-  let sc=scramble(word); while(sc===word&&word.length>1)sc=scramble(word);
-  document.getElementById('scrambleWord').textContent=sc;
-  document.getElementById('scrambleInput').value='';
-  document.getElementById('scrambleHint').textContent=`${scrambleIdx}/${WORDS.length} — رتّب الحروف`;
-  document.getElementById('scrambleInput').focus();
-}
-function checkScramble(e){
-  const val=document.getElementById('scrambleInput').value.trim();
-  if(val===currentWord){
-    scrambleScore+=10; document.getElementById('scrambleScore').textContent='النقاط: '+scrambleScore;
-    document.getElementById('scrambleWord').style.color='#10B981';
-    showToast('+10 نقاط! ✅','🔤');
-    setTimeout(()=>{document.getElementById('scrambleWord').style.color='';nextScramble();},600);
-  } else if(e.key==='Enter'){
-    document.getElementById('scrambleWord').style.color='#EF4444';
-    setTimeout(()=>document.getElementById('scrambleWord').style.color='',500);
-  }
-}
-nextScramble();
-
-const rapidQ=[
-  {q:`ما موضوع هذا الدرس؟`,opts:['{{ lesson.title }}','موضوع آخر','لا أعرف','درس مختلف'],correct:0},
-  {q:'كم مدة هذا الدرس؟',opts:['{{ lesson.duration }} دقيقة','60 دقيقة','5 دقائق','ساعة'],correct:0},
-  {q:'ما اسم المادة؟',opts:['{{ lesson.subject.name_ar or lesson.subject.name }}','مادة أخرى','لا أعرف','رياضيات'],correct:0},
-];
-let rIdx=0,rScore=0;
-function startRapid(){rIdx=0;rScore=0;showRapid();}
-function showRapid(){
-  if(rIdx>=rapidQ.length){document.getElementById('rapidContent').innerHTML=`<div style="font-size:2rem">🏆</div><div style="font-size:1.2rem;font-weight:900;color:#F59E0B;">نتيجتك: ${rScore}/${rapidQ.length*10}</div><br><button class="btn-game" onclick="startRapid()">🔄 مجدداً</button>`;return;}
-  const q=rapidQ[rIdx];
-  const s=[...q.opts.map((o,i)=>({text:o,correct:i===q.correct}))].sort(()=>Math.random()-.5);
-  document.getElementById('rapidContent').innerHTML=`<div style="font-size:1rem;font-weight:800;margin-bottom:1rem;line-height:1.5;">${q.q}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">${s.map(o=>`<button onclick="answerRapid(this,${o.correct})" style="padding:.6rem;border-radius:10px;border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-weight:700;cursor:pointer;font-family:inherit;">${o.text}</button>`).join('')}</div><div style="margin-top:.6rem;opacity:.6;font-size:.82rem;">${rIdx+1}/${rapidQ.length}</div>`;
-}
-function answerRapid(btn,correct){
-  document.querySelectorAll('#rapidContent button').forEach(b=>b.disabled=true);
-  if(correct){btn.style.background='#10B981';rScore+=10;showToast('+10 نقاط! 🎯','⚡');}
-  else btn.style.background='#EF4444';
-  rIdx++;setTimeout(showRapid,700);
-}
-function switchGame(name,btn){
-  document.querySelectorAll('.game-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.gtab').forEach(b=>b.classList.remove('active'));
-  document.getElementById(name+'Game').classList.add('active');
-  btn.classList.add('active');
 }
 </script>
 {% endblock %}
