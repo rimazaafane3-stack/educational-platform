@@ -18,6 +18,8 @@ class Config:
     # ── Security ──────────────────────────────────────────────
     SECRET_KEY = os.environ.get('SECRET_KEY') or os.urandom(32)
     WTF_CSRF_ENABLED      = True
+    WTF_CSRF_TIME_LIMIT   = None   # No expiry — fixes Bad Request on Railway
+    WTF_CSRF_SSL_STRICT   = False  # Allow HTTP + HTTPS
     SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'

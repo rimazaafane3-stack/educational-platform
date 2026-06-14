@@ -4,13 +4,14 @@
 {% block extra_css %}
 <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 <style>
-.ql-container{font-family:'Cairo',sans-serif;font-size:1rem;min-height:350px;border-radius:0 0 10px 10px;}
-.ql-toolbar{border-radius:10px 10px 0 0;background:#f8f9ff;}
-.ql-editor{min-height:320px;direction:rtl;text-align:right;}
-.ql-editor h1,.ql-editor h2,.ql-editor h3{color:#6C63FF;}
-.color-presets{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.4rem;}
-.color-preset{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:border .15s;}
-.color-preset:hover{border-color:#333;}
+.ql-container{font-family:'Cairo',sans-serif;font-size:1rem;min-height:400px;border-radius:0 0 12px 12px;}
+.ql-toolbar{border-radius:12px 12px 0 0;background:#f8f9ff;flex-wrap:wrap;}
+.ql-editor{min-height:380px;direction:rtl;text-align:right;line-height:1.9;}
+.ql-editor img{max-width:100%;border-radius:10px;margin:.5rem 0;}
+.img-upload-btn{display:inline-flex;align-items:center;gap:.4rem;background:#EEF2FF;color:var(--primary);border:1.5px solid var(--primary);border-radius:8px;padding:.4rem .9rem;font-weight:700;font-size:.85rem;cursor:pointer;margin-top:.5rem;}
+.color-bar{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem;}
+.c-swatch{width:26px;height:26px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:all .15s;flex-shrink:0;}
+.c-swatch:hover{border-color:#333;transform:scale(1.15);}
 </style>
 {% endblock %}
 
@@ -62,19 +63,27 @@
 
     <div class="form-group">
       <label>ملخص الدرس</label>
-      <textarea name="summary" class="form-control" rows="2" placeholder="وصف مختصر...">{{ lesson.summary if lesson else '' }}</textarea>
+      <textarea name="summary" class="form-control" rows="2"
+                placeholder="وصف مختصر يظهر في قائمة الدروس">{{ lesson.summary if lesson else '' }}</textarea>
     </div>
 
-    <!-- Rich Text Editor -->
+    <!-- محرر المحتوى الغني -->
     <div class="form-group">
-      <label>محتوى الدرس <span class="req">*</span> <small style="color:#6B7280">— يمكنك تنسيق النص بالألوان والعناوين والجداول</small></label>
+      <label>محتوى الدرس <span class="req">*</span>
+        <small style="color:#6B7280;font-weight:400;">— يدعم النصوص، الصور، الجداول، الألوان</small>
+      </label>
 
-      <!-- Quick color bar -->
-      <div class="color-presets">
-        <span style="font-size:.82rem;font-weight:700;color:#6B7280;align-self:center;">ألوان سريعة:</span>
-        {% for c in ['#6C63FF','#EF4444','#10B981','#F59E0B','#3B82F6','#8B5CF6','#EC4899','#14B8A6'] %}
-        <div class="color-preset" style="background:{{ c }}" onclick="applyColor('{{ c }}')" title="{{ c }}"></div>
+      <!-- شريط ألوان سريع -->
+      <div class="color-bar">
+        <span style="font-size:.8rem;font-weight:700;color:#6B7280;">ألوان:</span>
+        {% for c in ['#6C63FF','#EF4444','#10B981','#F59E0B','#3B82F6','#8B5CF6','#EC4899','#0EA5E9','#14B8A6','#000000'] %}
+        <div class="c-swatch" style="background:{{ c }}" onclick="applyColor('{{ c }}')" title="{{ c }}"></div>
         {% endfor %}
+        <!-- زر رفع صورة -->
+        <label class="img-upload-btn" for="imgUploadInput" style="margin-right:auto;">
+          🖼️ أضف صورة
+        </label>
+        <input type="file" id="imgUploadInput" accept="image/*" style="display:none" onchange="insertImage(this)">
       </div>
 
       <div id="quillEditor">{{ lesson.content | safe if lesson else '' }}</div>
@@ -82,16 +91,15 @@
 
     {% if lesson %}
     <div class="form-group">
-      <label>الحالة</label>
       <div class="toggle-wrap">
         <input type="checkbox" name="is_active" id="isActive" {% if lesson.is_active %}checked{% endif %}>
-        <label for="isActive" class="toggle-label">مفعّل</label>
+        <label for="isActive" class="toggle-label">✅ الدرس مفعّل</label>
       </div>
     </div>
     {% endif %}
 
     <div class="form-actions">
-      <button type="submit" class="btn-submit" id="submitBtn">
+      <button type="submit" class="btn-submit" id="saveBtn">
         <i class="fas fa-save"></i> {% if lesson %}حفظ التعديلات{% else %}إضافة الدرس{% endif %}
       </button>
       <a href="{{ url_for('admin.lessons') }}" class="btn-cancel">إلغاء</a>
@@ -101,38 +109,66 @@
 
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
+// تهيئة محرر Quill مع دعم الصور
 var quill = new Quill('#quillEditor', {
   theme: 'snow',
-  direction: 'rtl',
   modules: {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline'],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'align': ['right', 'center', 'left'] }],
-      ['blockquote', 'code-block'],
-      ['link'],
-      ['clean']
-    ]
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline'],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'align': ['right','center','left','justify'] }],
+        ['blockquote'],
+        ['link'],
+        ['clean']
+      ]
+    }
   },
-  placeholder: 'اكتب محتوى الدرس هنا... استخدم الشريط أعلاه للتنسيق'
+  placeholder: 'اكتب محتوى الدرس هنا...'
 });
 
-// Set RTL on editor
 quill.root.setAttribute('dir', 'rtl');
 
+// تلوين النص
 function applyColor(color) {
   quill.format('color', color);
   quill.focus();
 }
 
+// رفع الصورة وتحويلها لـ base64 وإدراجها في المحتوى
+function insertImage(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+
+  // تحقق من الحجم (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    alert('الصورة كبيرة جداً — الحجم الأقصى 5MB');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const range = quill.getSelection(true) || { index: quill.getLength() };
+    quill.insertEmbed(range.index, 'image', e.target.result);
+    quill.setSelection(range.index + 1);
+    // إعادة تعيين input
+    input.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+// حفظ المحتوى عند الإرسال
 document.getElementById('lessonForm').addEventListener('submit', function(e) {
   const content = quill.root.innerHTML;
   if (content === '<p><br></p>' || content.trim() === '') {
-    e.preventDefault(); alert('يرجى كتابة محتوى الدرس'); return;
+    e.preventDefault();
+    alert('يرجى كتابة محتوى الدرس');
+    return;
   }
   document.getElementById('hiddenContent').value = content;
+  document.getElementById('saveBtn').textContent = '⏳ جاري الحفظ...';
 });
 </script>
 {% endblock %}

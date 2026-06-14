@@ -431,96 +431,97 @@ def upload_local_video():
     return render_template('admin/upload_local_video.html', subjects=subjects)
 
 
-# ═══ LESSON IMPORT (PDF / WORD / URL) ═════════════════════════
+
+
+# ═══ LESSON IMPORT — PDF / WORD / TEXT / URL ══════════════════
 @admin.route('/lessons/import', methods=['GET', 'POST'])
 @admin_required
 def import_lesson():
     subjects = Subject.query.filter_by(is_active=True).all()
+
     if request.method == 'POST':
         import_type = request.form.get('import_type', 'file')
-        title      = request.form.get('title', '').strip()
-        subject_id = int(request.form.get('subject_id', 0))
-        content    = ''
+        title       = request.form.get('title', '').strip() or 'درس مستورد'
+        subject_id  = int(request.form.get('subject_id', 0) or 0)
+        content     = ''
 
-        if import_type == 'url':
-            url = request.form.get('url', '').strip()
-            try:
-                import urllib.request
-                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-                html = urllib.request.urlopen(req, timeout=10).read().decode('utf-8', errors='ignore')
-                # Basic extraction
-                import re
-                html = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
-                html = re.sub(r'<style[^>]*>.*?</style>',  '', html, flags=re.DOTALL)
-                html = re.sub(r'<nav[^>]*>.*?</nav>',      '', html, flags=re.DOTALL)
-                html = re.sub(r'<header[^>]*>.*?</header>', '', html, flags=re.DOTALL)
-                html = re.sub(r'<footer[^>]*>.*?</footer>', '', html, flags=re.DOTALL)
-                # Get main content tags
-                for tag in ['article', 'main', '.content', '#content']:
-                    m = re.search(rf'<{tag}[^>]*>(.*?)</{tag}>', html, re.DOTALL)
-                    if m:
-                        content = m.group(1)[:8000]
-                        break
-                if not content:
-                    content = re.sub(r'<[^>]+>', ' ', html)
-                    content = re.sub(r'\s+', ' ', content).strip()[:5000]
-                    content = f'<p>{content}</p>'
-            except Exception as e:
-                flash(f'خطأ في تحميل الرابط: {str(e)}', 'danger')
+        # ── FILE ──────────────────────────────────────────────
+        if import_type == 'file':
+            f = request.files.get('lesson_file')
+            if not f or not f.filename:
+                flash('اختاري ملفاً أولاً', 'danger')
                 return render_template('admin/import_lesson.html', subjects=subjects)
 
-        elif import_type == 'file':
-            if 'lesson_file' not in request.files:
-                flash('لم يتم اختيار ملف', 'danger')
-                return redirect(request.url)
-            f = request.files['lesson_file']
-            ext = f.filename.rsplit('.', 1)[-1].lower() if f.filename else ''
+            ext  = f.filename.rsplit('.', 1)[-1].lower()
+            data = f.read()
 
             if ext == 'pdf':
                 try:
-                    import pdfplumber
+                    from pypdf import PdfReader
                     import io
-                    with pdfplumber.open(io.BytesIO(f.read())) as pdf:
-                        text = '\n'.join(p.extract_text() or '' for p in pdf.pages[:20])
-                    paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
-                    content = ''.join(f'<p>{p}</p>' for p in paragraphs[:100])
-                except ImportError:
-                    # fallback without pdfplumber
-                    content = '<p>⚠️ لم يتم تثبيت مكتبة pdfplumber — يرجى نسخ المحتوى يدوياً.</p>'
+                    reader = PdfReader(io.BytesIO(data))
+                    text   = '\n'.join(
+                        page.extract_text() or '' for page in reader.pages[:30]
+                    )
+                    content = _text_to_html(text)
                 except Exception as e:
-                    flash(f'خطأ في قراءة PDF: {str(e)}', 'danger')
+                    flash(f'خطأ في قراءة PDF: {e}', 'danger')
                     return render_template('admin/import_lesson.html', subjects=subjects)
 
-            elif ext in ('doc', 'docx'):
+            elif ext in ('docx', 'doc'):
                 try:
-                    import docx2txt, io
-                    text = docx2txt.process(io.BytesIO(f.read()))
-                    paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
-                    content = ''.join(f'<p>{p}</p>' for p in paragraphs[:100])
-                except ImportError:
-                    content = '<p>⚠️ لم يتم تثبيت مكتبة docx2txt — يرجى نسخ المحتوى يدوياً.</p>'
+                    import docx, io
+                    doc  = docx.Document(io.BytesIO(data))
+                    text = '\n'.join(p.text for p in doc.paragraphs if p.text.strip())
+                    content = _text_to_html(text)
                 except Exception as e:
-                    flash(f'خطأ في قراءة الملف: {str(e)}', 'danger')
+                    flash(f'خطأ في قراءة Word: {e}', 'danger')
                     return render_template('admin/import_lesson.html', subjects=subjects)
 
             elif ext == 'txt':
-                text = f.read().decode('utf-8', errors='ignore')
-                paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
-                content = ''.join(f'<p>{p}</p>' for p in paragraphs[:100])
+                text    = data.decode('utf-8', errors='ignore')
+                content = _text_to_html(text)
 
             else:
-                flash('صيغة غير مدعومة — استعمل PDF, DOCX, أو TXT', 'danger')
+                flash('صيغة غير مدعومة — استعملي PDF, DOCX, أو TXT', 'danger')
                 return render_template('admin/import_lesson.html', subjects=subjects)
 
+        # ── TEXT ──────────────────────────────────────────────
         elif import_type == 'text':
-            raw = request.form.get('raw_text', '')
-            paragraphs = [p.strip() for p in raw.split('\n') if p.strip()]
-            content = ''.join(f'<p>{p}</p>' for p in paragraphs)
+            raw     = request.form.get('raw_text', '')
+            content = _text_to_html(raw)
+
+        # ── URL ───────────────────────────────────────────────
+        elif import_type == 'url':
+            url = request.form.get('url', '').strip()
+            try:
+                import urllib.request, re
+                req  = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                html = urllib.request.urlopen(req, timeout=15).read().decode('utf-8', errors='ignore')
+                # إزالة scripts و styles
+                html = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
+                html = re.sub(r'<style[^>]*>.*?</style>',  '', html, flags=re.DOTALL)
+                # محاولة استخراج المحتوى الرئيسي
+                for tag in ['article', 'main', 'section']:
+                    m = re.search(rf'<{tag}[^>]*>(.*?)</{tag}>', html, re.DOTALL | re.IGNORECASE)
+                    if m:
+                        content = re.sub(r'<[^>]+>', ' ', m.group(1))
+                        content = re.sub(r'\s+', ' ', content).strip()
+                        content = _text_to_html(content[:6000])
+                        break
+                if not content:
+                    text    = re.sub(r'<[^>]+>', ' ', html)
+                    text    = re.sub(r'\s+', ' ', text).strip()[:5000]
+                    content = _text_to_html(text)
+            except Exception as e:
+                flash(f'خطأ في تحميل الرابط: {e}', 'danger')
+                return render_template('admin/import_lesson.html', subjects=subjects)
 
         if not content:
             content = '<p>المحتوى فارغ — يرجى التعديل.</p>'
-        if not title:
-            title = 'درس مستورد'
+        if not subject_id:
+            flash('اختاري المادة الدراسية', 'danger')
+            return render_template('admin/import_lesson.html', subjects=subjects)
 
         lesson = Lesson(
             title=title, content=content,
@@ -531,7 +532,22 @@ def import_lesson():
         )
         db.session.add(lesson)
         db.session.commit()
-        flash('تم استيراد الدرس بنجاح ✅ — يمكنك تعديله الآن', 'success')
+        flash('✅ تم استيراد الدرس — يمكنك تعديله الآن', 'success')
         return redirect(url_for('admin.edit_lesson', lid=lesson.id))
 
     return render_template('admin/import_lesson.html', subjects=subjects)
+
+
+def _text_to_html(text):
+    """تحويل نص عادي إلى HTML منسّق"""
+    if not text:
+        return '<p>المحتوى فارغ</p>'
+    lines  = [l.strip() for l in text.split('\n') if l.strip()]
+    result = []
+    for line in lines[:200]:
+        # عناوين محتملة (قصيرة وبدون نقطة في النهاية)
+        if len(line) < 60 and not line.endswith(('.', '،', ':', '؟', '!')):
+            result.append(f'<h3>{line}</h3>')
+        else:
+            result.append(f'<p>{line}</p>')
+    return '\n'.join(result)

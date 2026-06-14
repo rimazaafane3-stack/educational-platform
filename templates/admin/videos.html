@@ -5,16 +5,25 @@
 <div class="admin-page">
   <div class="admin-header">
     <h1><i class="fas fa-video"></i> الفيديوهات التعليمية</h1>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-      <a href="{{ url_for('admin.add_video') }}" class="btn-add">
-        <i class="fab fa-youtube"></i> من YouTube
-      </a>
-      <a href="{{ url_for('admin.upload_local_video') }}" class="btn-add" style="background:linear-gradient(135deg,#10B981,#059669);">
-        <i class="fas fa-upload"></i> رفع من جهازي
-      </a>
+    <a href="{{ url_for('admin.add_video') }}" class="btn-add">
+      <i class="fab fa-youtube"></i> إضافة فيديو YouTube
+    </a>
+  </div>
+
+  <!-- نصيحة رفع الفيديو -->
+  <div style="background:#FEF3C7;border:2px solid #F59E0B;border-radius:14px;padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;gap:.75rem;align-items:flex-start;">
+    <span style="font-size:1.5rem;">📹</span>
+    <div>
+      <strong>كيف أضيف فيديو من جهازي؟</strong>
+      <p style="font-size:.88rem;margin:.3rem 0 0;color:#374151;">
+        1️⃣ ارفعي الفيديو على <a href="https://youtube.com" target="_blank" style="color:#F59E0B;font-weight:700;">YouTube</a> (مجاناً) أو <a href="https://drive.google.com" target="_blank" style="color:#F59E0B;font-weight:700;">Google Drive</a><br>
+        2️⃣ انسخي الرابط<br>
+        3️⃣ أضيفيه هنا بزر <strong>"إضافة فيديو YouTube"</strong>
+      </p>
     </div>
   </div>
 
+  <!-- Filter -->
   <div class="filter-bar">
     <a href="{{ url_for('admin.videos') }}" class="filter-btn {% if not selected_subject %}active{% endif %}">الكل</a>
     {% for s in subjects %}
@@ -47,7 +56,6 @@
         <div class="vac-meta">
           {% if v.duration %}<span><i class="fas fa-clock"></i> {{ v.duration }}</span>{% endif %}
           <span><i class="fas fa-eye"></i> {{ v.views }}</span>
-          <span><i class="fas fa-sort-numeric-up"></i> {{ v.order }}</span>
         </div>
       </div>
       <div class="vac-actions">
