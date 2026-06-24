@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}الألعاب التعليمية{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1>🎮 الألعاب التعليمية</h1>
+    <a href="{{ url_for('admin.add_game') }}" class="btn-add">
+      <i class="fas fa-plus"></i> لعبة جديدة
+    </a>
+  </div>
+
+  <!-- أنواع الألعاب المدعومة -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem;margin-bottom:1.5rem;">
+    {% for gtype, info in [('match',('🔗','طابق')),('scramble',('🔤','مختلطة')),('fillblank',('✍️','أكمل الفراغ')),('truefalse',('🧠','صح/خطأ')),('sort',('📋','رتّب'))] %}
+    <div style="background:#fff;border-radius:12px;padding:.85rem;text-align:center;box-shadow:var(--shadow);border:1.5px solid var(--border);">
+      <div style="font-size:1.8rem;">{{ info[0] }}</div>
+      <div style="font-weight:800;font-size:.88rem;margin-top:.25rem;">{{ info[1] }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Filter -->
+  <div class="filter-bar">
+    <a href="{{ url_for('admin.games') }}" class="filter-btn {% if not selected_subject %}active{% endif %}">الكل</a>
+    {% for s in subjects %}
+    <a href="{{ url_for('admin.games', subject_id=s.id) }}"
+       class="filter-btn {% if selected_subject == s.id %}active{% endif %}">
+      {{ s.icon }} {{ s.name_ar or s.name }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- Games list -->
+  {% if games %}
+  <div style="display:flex;flex-direction:column;gap:.75rem;">
+    {% for g in games %}
+    {% set info = g.get_type_info() %}
+    <div style="background:#fff;border-radius:16px;padding:1.1rem 1.25rem;box-shadow:var(--shadow);border:2px solid var(--border);display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+      <div style="font-size:2rem;flex-shrink:0;">{{ info[0] }}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:800;font-size:1rem;">{{ g.title }}</div>
+        <div style="font-size:.82rem;color:var(--text-light);margin:.1rem 0;">
+          {{ g.subject.icon }} {{ g.subject.name_ar or g.subject.name }} ·
+          <span style="background:#EEF2FF;color:var(--primary);padding:.1rem .5rem;border-radius:6px;font-weight:700;">{{ info[1] }}</span> ·
+          {{ g.item_count() }} عنصر · {{ g.xp_reward }} XP
+        </div>
+        {% if g.description %}<div style="font-size:.83rem;color:var(--text-light);">{{ g.description[:80] }}</div>{% endif %}
+      </div>
+      <span style="padding:.2rem .65rem;border-radius:8px;font-size:.8rem;font-weight:700;{% if g.is_active %}background:#D1FAE5;color:#065F46;{% else %}background:#FEE2E2;color:#991B1B;{% endif %}">
+        {% if g.is_active %}✅ مفعّلة{% else %}❌ معطّلة{% endif %}
+      </span>
+      <div style="display:flex;gap:.4rem;flex-shrink:0;">
+        <a href="{{ url_for('admin.game_items', gid=g.id) }}" class="btn-view sm" title="إدارة العناصر">
+          <i class="fas fa-list"></i> العناصر
+        </a>
+        <a href="{{ url_for('admin.edit_game', gid=g.id) }}" class="btn-edit sm">
+          <i class="fas fa-edit"></i>
+        </a>
+        <form method="POST" action="{{ url_for('admin.delete_game', gid=g.id) }}" style="display:inline"
+              onsubmit="return confirm('حذف هذه اللعبة؟')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-delete sm"><i class="fas fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="es-icon">🎮</div>
+    <h3>لا توجد ألعاب بعد</h3>
+    <p>أضيفي أول لعبة تعليمية للطلاب</p>
+    <a href="{{ url_for('admin.add_game') }}" class="btn-add">
+      <i class="fas fa-plus"></i> لعبة جديدة
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

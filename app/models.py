@@ -330,3 +330,63 @@ class FocusSession(db.Model):
     ended_at    = db.Column(db.DateTime)
     duration    = db.Column(db.Integer, default=0)   # seconds
     completed   = db.Column(db.Boolean, default=False)
+
+
+# ═══════════════════════════════════════════════════════════
+#  GAMES SYSTEM — إدارة الألعاب التعليمية
+# ═══════════════════════════════════════════════════════════
+
+class Game(db.Model):
+    __tablename__ = 'games'
+    id          = db.Column(db.Integer, primary_key=True)
+    title       = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    subject_id  = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=False)
+    game_type   = db.Column(db.String(30), default='match')
+    # match | scramble | fillblank | truefalse | sort
+    order       = db.Column(db.Integer, default=0)
+    is_active   = db.Column(db.Boolean, default=True)
+    xp_reward   = db.Column(db.Integer, default=15)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+
+    subject = db.relationship('Subject', backref=db.backref('games', lazy='dynamic',
+                              cascade='all, delete-orphan'))
+    items   = db.relationship('GameItem', backref='game', lazy='dynamic',
+                              order_by='GameItem.order', cascade='all, delete-orphan')
+
+    def get_type_info(self):
+        types = {
+            'match':     ('🔗', 'طابق', 'اربط المصطلح بتعريفه'),
+            'scramble':  ('🔤', 'كلمات مختلطة', 'رتّب الحروف لتكوّن الكلمة'),
+            'fillblank': ('✍️', 'أكمل الفراغ', 'أكمل الجملة الناقصة'),
+            'truefalse': ('🧠', 'صح أم خطأ', 'حدّد إذا كانت الجملة صحيحة أم خاطئة'),
+            'sort':      ('📋', 'رتّب', 'رتّب العناصر بالترتيب الصحيح'),
+        }
+        return types.get(self.game_type, ('🎮', 'لعبة', ''))
+
+    def item_count(self):
+        return self.items.count()
+
+
+class GameItem(db.Model):
+    __tablename__ = 'game_items'
+    id      = db.Column(db.Integer, primary_key=True)
+    game_id = db.Column(db.Integer, db.ForeignKey('games.id'), nullable=False)
+    field1  = db.Column(db.Text, nullable=False)
+    field2  = db.Column(db.Text)
+    field3  = db.Column(db.Text)
+    order   = db.Column(db.Integer, default=0)
+
+
+class GameAttempt(db.Model):
+    __tablename__ = 'game_attempts'
+    id          = db.Column(db.Integer, primary_key=True)
+    user_id     = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    game_id     = db.Column(db.Integer, db.ForeignKey('games.id'), nullable=False)
+    score       = db.Column(db.Integer, default=0)
+    max_score   = db.Column(db.Integer, default=0)
+    completed   = db.Column(db.Boolean, default=False)
+    played_at   = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('game_attempts', lazy='dynamic'))
+    game = db.relationship('Game', backref=db.backref('attempts', lazy='dynamic'))

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}عناصر اللعبة{% endblock %}
+
+{% block content %}
+{% set info = game.get_type_info() %}
+{% set labels = {
+  'match':     ('المصطلح', 'التعريف', 'غير مستخدم'),
+  'scramble':  ('الكلمة', 'تلميح (اختياري)', 'غير مستخدم'),
+  'fillblank': ('الجملة (اكتبي ___ في مكان الكلمة الناقصة)', 'الإجابة الصحيحة', 'تلميح (اختياري)'),
+  'truefalse': ('الجملة / العبارة', 'صحيحة أم خاطئة', 'شرح الإجابة (اختياري)'),
+  'sort':      ('العنصر', 'الترتيب الصحيح (رقم)', 'غير مستخدم'),
+} %}
+{% set lbl = labels.get(game.game_type, ('الحقل 1','الحقل 2','الحقل 3')) %}
+
+<div class="admin-page">
+  <div class="admin-header">
+    <h1>{{ info[0] }} {{ game.title }}</h1>
+    <a href="{{ url_for('admin.games') }}" class="btn-back"><i class="fas fa-arrow-right"></i> العودة للألعاب</a>
+  </div>
+
+  <div style="background:#EFF6FF;border:2px solid #3B82F6;border-radius:14px;padding:1rem 1.25rem;margin-bottom:1.5rem;">
+    <strong>📋 نوع اللعبة: {{ info[1] }}</strong>
+    <p style="font-size:.85rem;margin:.25rem 0 0;color:#374151;">{{ info[2] }} — أضيفي {{ items|length }} عنصر/عناصر حتى الآن. يُفضّل 5-10 عناصر للعبة متكاملة.</p>
+  </div>
+
+  <!-- نموذج إضافة عنصر -->
+  <div style="background:#fff;border-radius:16px;padding:1.25rem;box-shadow:var(--shadow);border:2px solid var(--primary);margin-bottom:1.5rem;">
+    <h4 style="font-weight:800;margin-bottom:1rem;color:var(--primary);">➕ إضافة عنصر جديد</h4>
+    <form method="POST" action="{{ url_for('admin.add_game_item', gid=game.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label>{{ lbl[0] }} <span class="req">*</span></label>
+        {% if game.game_type == 'fillblank' or game.game_type == 'truefalse' %}
+        <textarea name="field1" class="form-control" rows="2" required placeholder="اكتبي هنا..."></textarea>
+        {% else %}
+        <input type="text" name="field1" class="form-control" required placeholder="اكتبي هنا...">
+        {% endif %}
+      </div>
+
+      {% if game.game_type == 'truefalse' %}
+      <div class="form-group">
+        <label>{{ lbl[1] }}</label>
+        <select name="field2" class="form-control">
+          <option value="true">✅ صحيحة</option>
+          <option value="false">❌ خاطئة</option>
+        </select>
+      </div>
+      {% else %}
+      <div class="form-group">
+        <label>{{ lbl[1] }}</label>
+        <input type="text" name="field2" class="form-control" placeholder="اكتبي هنا...">
+      </div>
+      {% endif %}
+
+      {% if lbl[2] != 'غير مستخدم' %}
+      <div class="form-group">
+        <label>{{ lbl[2] }}</label>
+        <input type="text" name="field3" class="form-control" placeholder="اختياري...">
+      </div>
+      {% endif %}
+
+      <button type="submit" class="btn-submit">
+        <i class="fas fa-plus"></i> إضافة العنصر
+      </button>
+    </form>
+  </div>
+
+  <!-- قائمة العناصر -->
+  <h4 style="font-weight:800;margin-bottom:.75rem;">العناصر الحالية ({{ items|length }})</h4>
+  {% if items %}
+  <div style="display:flex;flex-direction:column;gap:.5rem;">
+    {% for item in items %}
+    <div style="background:#fff;border-radius:12px;padding:.85rem 1.1rem;box-shadow:var(--shadow);border:1.5px solid var(--border);display:flex;align-items:center;gap:1rem;">
+      <span style="background:var(--primary);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0;">{{ loop.index }}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:.92rem;">{{ item.field1 }}</div>
+        {% if item.field2 %}
+        <div style="font-size:.85rem;color:var(--text-light);">
+          {% if game.game_type == 'truefalse' %}
+            {% if item.field2 == 'true' %}✅ صحيحة{% else %}❌ خاطئة{% endif %}
+          {% else %}
+            ← {{ item.field2 }}
+          {% endif %}
+        </div>
+        {% endif %}
+        {% if item.field3 %}<div style="font-size:.78rem;color:#9CA3AF;">💡 {{ item.field3 }}</div>{% endif %}
+      </div>
+      <form method="POST" action="{{ url_for('admin.delete_game_item', iid=item.id) }}"
+            onsubmit="return confirm('حذف هذا العنصر؟')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-delete sm"><i class="fas fa-trash"></i></button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">لا توجد عناصر بعد — أضيفي أول عنصر أعلاه</div>
+  {% endif %}
+</div>
+{% endblock %}

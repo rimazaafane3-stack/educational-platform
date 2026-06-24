@@ -80,6 +80,7 @@
       <a href="{{ url_for('admin.videos') }}"     class="nav-link {% if 'video' in request.endpoint %}active{% endif %}"><i class="fas fa-video"></i> الفيديوهات</a>
       <a href="{{ url_for('admin.quizzes') }}"    class="nav-link {% if 'quiz' in request.endpoint %}active{% endif %}"><i class="fas fa-question-circle"></i> الامتحانات</a>
       <a href="{{ url_for('admin.students') }}"   class="nav-link {% if 'student' in request.endpoint %}active{% endif %}"><i class="fas fa-users"></i> الطلاب</a>
+      <a href="{{ url_for('admin.games') }}"      class="nav-link {% if 'game' in request.endpoint %}active{% endif %}"><i class="fas fa-gamepad"></i> الألعاب</a>
       <a href="{{ url_for('admin.results') }}"    class="nav-link {% if 'result' in request.endpoint %}active{% endif %}"><i class="fas fa-chart-bar"></i> النتائج</a>
       <a href="{{ url_for('admin.badges') }}"     class="nav-link {% if 'badge' in request.endpoint %}active{% endif %}"><i class="fas fa-medal"></i> الشارات</a>
     </div>

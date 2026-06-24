@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{% if game %}تعديل اللعبة{% else %}لعبة جديدة{% endif %}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <h1>{% if game %}✏️ تعديل اللعبة{% else %}🎮 لعبة جديدة{% endif %}</h1>
+    <a href="{{ url_for('admin.games') }}" class="btn-back"><i class="fas fa-arrow-right"></i> العودة</a>
+  </div>
+
+  <!-- أنواع الألعاب -->
+  <div style="background:#F5F3FF;border-radius:16px;padding:1.25rem;margin-bottom:1.5rem;">
+    <h4 style="font-weight:800;margin-bottom:1rem;color:var(--primary);">🎯 اختاري نوع اللعبة</h4>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.75rem;">
+      {% for gtype, icon, name, desc in [
+        ('match',     '🔗', 'طابق',          'اربط مصطلح بتعريفه'),
+        ('scramble',  '🔤', 'كلمات مختلطة', 'رتّب حروف كلمة مختلطة'),
+        ('fillblank', '✍️', 'أكمل الفراغ',  'أكمل الجملة الناقصة'),
+        ('truefalse', '🧠', 'صح أم خطأ',    'جمل صحيحة وخاطئة'),
+        ('sort',      '📋', 'رتّب',          'رتّب عناصر بالترتيب'),
+      ] %}
+      <label style="display:flex;align-items:center;gap:.75rem;background:#fff;border-radius:12px;padding:.85rem;cursor:pointer;border:2px solid var(--border);transition:all .2s;"
+             id="lbl_{{ gtype }}"
+             onclick="selectType('{{ gtype }}')">
+        <input type="radio" name="_type_preview" value="{{ gtype }}"
+               {% if game and game.game_type == gtype %}checked{% elif not game and gtype == 'match' %}checked{% endif %}
+               style="display:none">
+        <span style="font-size:1.5rem;">{{ icon }}</span>
+        <div>
+          <div style="font-weight:800;font-size:.9rem;">{{ name }}</div>
+          <div style="font-size:.78rem;color:var(--text-light);">{{ desc }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <form method="POST" class="admin-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="game_type" id="gameTypeInput" value="{{ game.game_type if game else 'match' }}">
+
+    <div class="form-group">
+      <label>عنوان اللعبة <span class="req">*</span></label>
+      <input type="text" name="title" class="form-control"
+             value="{{ game.title if game else '' }}" placeholder="مثال: طابق مصطلحات الرياضيات" required>
+    </div>
+
+    <div class="form-grid two-col">
+      <div class="form-group">
+        <label>المادة <span class="req">*</span></label>
+        <select name="subject_id" class="form-control" required>
+          <option value="">-- اختر المادة --</option>
+          {% for s in subjects %}
+          <option value="{{ s.id }}" {% if game and game.subject_id==s.id %}selected{% endif %}>
+            {{ s.icon }} {{ s.name_ar or s.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>نقاط XP عند الإكمال</label>
+        <input type="number" name="xp_reward" class="form-control"
+               value="{{ game.xp_reward if game else 15 }}" min="1" max="100">
+      </div>
+      <div class="form-group">
+        <label>الترتيب</label>
+        <input type="number" name="order" class="form-control"
+               value="{{ game.order if game else 0 }}" min="0">
+      </div>
+      {% if game %}
+      <div class="form-group">
+        <div class="toggle-wrap" style="margin-top:1.5rem;">
+          <input type="checkbox" name="is_active" id="isActive" {% if game.is_active %}checked{% endif %}>
+          <label for="isActive" class="toggle-label">✅ اللعبة مفعّلة</label>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="form-group">
+      <label>وصف اللعبة (اختياري)</label>
+      <textarea name="description" class="form-control" rows="2"
+                placeholder="وصف مختصر يظهر للطالب قبل اللعب">{{ game.description if game else '' }}</textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-submit">
+        <i class="fas fa-save"></i> {% if game %}حفظ التعديلات{% else %}إنشاء اللعبة{% endif %}
+      </button>
+      <a href="{{ url_for('admin.games') }}" class="btn-cancel">إلغاء</a>
+    </div>
+  </form>
+</div>
+
+<script>
+function selectType(type) {
+  document.getElementById('gameTypeInput').value = type;
+  document.querySelectorAll('[id^="lbl_"]').forEach(l => {
+    l.style.borderColor = 'var(--border)';
+    l.style.background  = '#fff';
+  });
+  const sel = document.getElementById('lbl_' + type);
+  if (sel) {
+    sel.style.borderColor = 'var(--primary)';
+    sel.style.background  = '#EEF2FF';
+  }
+}
+selectType(document.getElementById('gameTypeInput').value);
+</script>
+{% endblock %}
